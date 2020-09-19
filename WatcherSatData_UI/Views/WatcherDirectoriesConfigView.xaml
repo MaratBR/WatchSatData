@@ -1,0 +1,143 @@
+﻿<UserControl x:Class="WatcherSatData_UI.Views.WatcherDirectoriesConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:api="clr-namespace:WatchSatData.DataStore;assembly=WatchSatData"
+             xmlns:watermark="clr-namespace:WatcherSatData_UI.Utils.Watermark"
+             xmlns:conv="clr-namespace:WatcherSatData_UI.Utils.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <conv:RowToIndexConv x:Key="RowToIndexConv"/>
+        <conv:BooleanConverter x:Key="BooleanToDeletedText" TrueValue="Отменить удаление" FalseValue="Удалить" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="55" />
+            <ColumnDefinition />
+            <ColumnDefinition Width="50" />
+        </Grid.ColumnDefinitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBox
+            Grid.Column="1"
+            BorderThickness="0"
+            FontSize="25px"
+            Padding="0,20px,0,20px"
+            Text="{Binding QueryString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+            <watermark:WatermarkService.Watermark>
+                <TextBlock 
+                    Padding="4px,0,0,0"
+                    FontSize="25px"
+                    VerticalAlignment="Stretch"
+                    Text="Поиск по имени папки" />
+            </watermark:WatermarkService.Watermark>
+        </TextBox>
+
+        <Viewbox Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="15,0,0,0">
+            <Canvas Width="24" Height="24">
+                <Path Fill="Black" Data="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+            </Canvas>
+        </Viewbox>
+
+        <Border Padding="5" Grid.Row="1" BorderBrush="#EEE" BorderThickness="0,0,1,0">
+            <StackPanel Orientation="Vertical">
+                <Button 
+                    Margin="0,0,0,6"
+                    Style="{StaticResource MahApps.Styles.Button.Square.Accent}" 
+                    Command="{Binding Refresh}">
+                    <Viewbox Width="24" Height="24">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="White" Data="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z" />
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+
+                <Button 
+                    Margin="0,0,0,6"
+                    Command="{Binding Save}"
+                    Style="{StaticResource MahApps.Styles.Button.Square.Accent}">
+                    <Viewbox Width="24" Height="24">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="White" Data="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+
+                <Button 
+                    Command="{Binding Add}"
+                    Style="{StaticResource MahApps.Styles.Button.Square.Accent}">
+                    <Viewbox Width="24" Height="24">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="White" Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <DataGrid 
+            ItemsSource="{Binding Data}" 
+            Grid.ColumnSpan="2" Grid.Column="1" Grid.Row="1" 
+            AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="#" MaxWidth="40" MinWidth="30">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock 
+                                HorizontalAlignment="Center"
+                                Text="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowToIndexConv}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Путь" Binding="{Binding FullPath, Mode=TwoWay}" />
+                <DataGridTextColumn Header="Время жизни" Binding="{Binding MaxAge, Mode=TwoWay}" />
+                <DataGridTextColumn Header="Имя" Binding="{Binding Alias}" />
+                <DataGridTextColumn Header="Добавлено" Binding="{Binding AddedAt}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Последняя очистка" Binding="{Binding LastCleanUp}" IsReadOnly="True" />
+                <DataGridCheckBoxColumn IsReadOnly="True" Header="Существует" Binding="{Binding Exists, Mode=OneWay}" />
+                
+                <DataGridTemplateColumn IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="4">
+                                <Button
+                                    Command="{Binding ToggleDeleted}"
+                                    Content="{Binding IsDeleted, Converter={StaticResource BooleanToDeletedText}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                
+                <DataGridTemplateColumn Header="Изм." IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="Изменено" FontWeight="Bold" Foreground="Black" Visibility="{Binding IsChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                <TextBlock Text="Удалено" FontWeight="Bold" Foreground="DeepPink" Visibility="{Binding IsDeleted, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Rectangle 
+            IsHitTestVisible="False"
+            Style="{StaticResource VisibleAnimation}"
+            Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="100" VerticalAlignment="Bottom">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint=".5,0" EndPoint=".5,1">
+                    <GradientStop Color="Transparent" Offset="0" />
+                    <GradientStop Color="#55000000" Offset="1" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+    </Grid>
+</UserControl>
