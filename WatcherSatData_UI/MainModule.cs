@@ -25,11 +25,12 @@ namespace WatcherSatData_UI
         {
             _regionManager.AddToRegion("Main", containerProvider.Resolve<WatcherDirectoriesConfigView>());
 
-            containerProvider.Resolve<IServiceDetector>().EnsureServiceAvailability().ConfigureAwait(false);
+            containerProvider.Resolve<IWatcherServiceProvider>().InitAsync().ConfigureAwait(false);
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
+            containerRegistry.RegisterSingleton(typeof(IWatcherServiceProvider), typeof(WatcherServiceProvider));
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
@@ -16,6 +17,7 @@ namespace WatcherSatData_UI.ServicesImpl
         private WatcherServiceProvider provider;
         private int retriesCount;
         private bool available = true;
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public event EventHandler<ServiceStateChangedEventArgs> StateChanged;
         public WatcherServiceProxy(WatcherServiceProvider provider, int retriesCount)
@@ -92,11 +94,14 @@ namespace WatcherSatData_UI.ServicesImpl
                 catch (Exception _exc)
                 {
                     if (_exc is CommunicationObjectFaultedException)
+                    {
                         service = await Reconnect();
+                    }
                     exc = _exc;
                 }
             }
             inner = null;
+            logger.Debug($"Не удалось выполнить операцию за {retriesCount} попыток, сервис недоступен");
             OnAvailabilityStatusChanged(false);
             throw exc;
         }
@@ -116,11 +121,14 @@ namespace WatcherSatData_UI.ServicesImpl
                 catch (Exception _exc)
                 {
                     if (_exc is CommunicationObjectFaultedException)
+                    {
                         service = await Reconnect();
+                    }
                     exc = _exc;
                 }
             }
             inner = null;
+            logger.Debug($"Не удалось выполнить операцию за {retriesCount} попыток, сервис недоступен");
             OnAvailabilityStatusChanged(false);
             throw exc;
         }

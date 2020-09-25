@@ -8,21 +8,34 @@ using WatchSatData;
 
 namespace WatcherSatData_UI.Services
 {
+    public enum ServiceState
+    { 
+        Offline,
+        Online,
+        ExpectingOnline
+    }
+
     public class ServiceStateChangedEventArgs : EventArgs
     {
         public ServiceStateChangedEventArgs(bool available)
         {
-            Available = available;
+            State = available ? ServiceState.Online : ServiceState.Offline;
         }
 
-        public bool Available { get; }
+        public bool Available => State == ServiceState.Online;
+
+        public ServiceState State { get; }
     }
 
-    public interface IWatcherServiceProvider
+    public interface IWatcherServiceProvider : IDisposable
     {
+        ServiceState? GetLastState();
+
         IService GetService();
 
-        void Init();
+        Task InitAsync();
+
+        bool IsEmbed();
 
         event EventHandler<ServiceStateChangedEventArgs> StateChanged;
     }

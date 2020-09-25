@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -11,6 +12,8 @@ namespace WatcherSatData_UI.Utils.Proc
 {
     class Supervisor : IDisposable
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public Process Process { get; private set; }
         private ProcessStartInfo _info;
         private Thread observerThread;
@@ -20,11 +23,13 @@ namespace WatcherSatData_UI.Utils.Proc
         public Supervisor(ProcessStartInfo info)
         {
             _info = info;
+
             Start();
         }
 
         private void StartObserver()
         {
+            logger.Debug("Запускаю поток-наблюдатель...");
             observerThread = new Thread((object s) => ObserveProcess((SynchronizationContext)s))
             {
                 Name = "ProcessObserver",
@@ -40,6 +45,7 @@ namespace WatcherSatData_UI.Utils.Proc
 
         private void ObserveProcess(SynchronizationContext context)
         {
+            logger.Debug($"Наблюдаю за дочерним процессом PID={processId}");
             while (processId != null)
             {
                 try
@@ -48,6 +54,7 @@ namespace WatcherSatData_UI.Utils.Proc
                 }
                 catch(ArgumentException)
                 {
+                    logger.Debug($"Процесс PID={processId} умер, перезапуск ...");
                     context.Post(_s => Restart(), null);
                 }
                 Thread.Sleep(10000);
@@ -67,6 +74,8 @@ namespace WatcherSatData_UI.Utils.Proc
 
         private void Start()
         {
+            logger.Debug($"Запуск дочернего процесса {_info.FileName} ...");
+
             Process = Process.Start(_info);
             if (processId == null)
             {
@@ -77,7 +86,6 @@ namespace WatcherSatData_UI.Utils.Proc
             {
                 processId = Process.Id;
             }
-
 
             SubscribeToEvents();
         }

@@ -1,11 +1,16 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.ServiceModel;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using WatcherSatData_UI.Exceptions;
 using WatcherSatData_UI.Services;
+using WatcherSatData_UI.Utils.Proc;
 using WatchSatData;
 
 namespace WatcherSatData_UI.ServicesImpl
@@ -14,9 +19,15 @@ namespace WatcherSatData_UI.ServicesImpl
     {
         public event EventHandler<ServiceStateChangedEventArgs> StateChanged;
 
-        private IService service;
-        private Task pingerTask;
-        private bool pingLoopRunning = true;
+        private static string[] ServiceExe = { "satWatcher.exe", "WatcherSatData_CLI.exe" };
+
+        private WatcherServiceProxy service;
+        private Supervisor embedServiceSupervisor;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private Task pinger;
+        private bool isInitialized = false;
+        private bool isDisposed = false;
+        private ServiceState? lastState = null;
 
         public WatcherServiceProvider()
         {
@@ -24,31 +35,115 @@ namespace WatcherSatData_UI.ServicesImpl
 
         public IService GetService()
         {
-            if (service == null)
-            {
-                service = new WatcherServiceProxy(this, 5);
-                ((WatcherServiceProxy)service).StateChanged += WatcherServiceProvider_StateChanged;
-            }
+            ThrowIfNotInitializedOrDisposed();
             return service;
         }
 
-        public void Init()
+        public async Task InitAsync()
         {
-            pingerTask = PingLoop();
+            if (isInitialized)
+                return;
+            logger.Debug("Инициализация...");
+            isInitialized = true;
+            InitService();
+            if (!await CheckAvailability())
+            {
+                logger.Debug("Сервис не запущен, запускаю встроенный сервис...");
+                CreateEmbedService();
+            }
+            else
+            {
+                logger.Debug("Сервис запущен внешне");
+            }
+        }
+
+        private void InitService()
+        {
+            service = new WatcherServiceProxy(this, 5);
+            ((WatcherServiceProxy)service).StateChanged += WatcherServiceProxy_StateChanged;
+
+            pinger = PingLoop();
         }
 
         private async Task PingLoop()
         {
-            while (pingLoopRunning)
+            while (true)
             {
-                await Task.Delay(10000);
-                await GetService().Ping();
+                await CheckAvailability();
+                await Task.Delay(5000);
             }
         }
 
-        private void WatcherServiceProvider_StateChanged(object sender, ServiceStateChangedEventArgs e)
+        private void CreateEmbedService()
         {
+            if (embedServiceSupervisor != null)
+                return; // TODO Exception
+
+            var exe = GetServiceExeFileOrNull();
+
+            if (exe == null)
+            {
+                logger.Error("Не удалось найти путь к исполняемому файлу сервиса");
+                return;
+            }
+
+            logger.Error($"Файл сервиса найден: {exe}");
+
+
+            var parent = Process.GetCurrentProcess();
+
+            embedServiceSupervisor = new Supervisor(new ProcessStartInfo
+            {
+                FileName = exe,
+                Arguments = $"--parent-pid {parent.Id}",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true
+            });
+        }
+
+        private string GetServiceExeFileOrNull()
+        {
+            foreach (var exe in ServiceExe)
+            {
+                var fullPath = GetFullPathOrNull(exe);
+                if (fullPath != null)
+                    return fullPath;
+            }
+            return null;
+        }
+
+        private async Task<bool> CheckAvailability()
+        {
+            try
+            {
+                await service.Ping();
+                return true;
+            }
+            catch (EndpointNotFoundException)
+            {
+                return false;
+            }
+            catch (CommunicationObjectFaultedException)
+            {
+                return false;
+            }
+        }
+
+        private void WatcherServiceProxy_StateChanged(object sender, ServiceStateChangedEventArgs e)
+        {
+            logger.Debug($"Статус сервиса: {e.State}");
             StateChanged?.Invoke(this, e);
+            lastState = e.State;
+        }
+
+        private void ThrowIfNotInitializedOrDisposed()
+        {
+            if (!isInitialized)
+                throw new ServiceProviderInvalidException("ServiceProvider is not initialized");
+
+            if (isDisposed)
+                throw new ServiceProviderInvalidException("ServiceProvider is disposed");
         }
 
         public IService InstantiateService()
@@ -67,6 +162,42 @@ namespace WatcherSatData_UI.ServicesImpl
             {
                 return null;
             }
+        }
+
+        public bool IsEmbed()
+        {
+            return embedServiceSupervisor != null;
+        }
+
+        public ServiceState? GetLastState() => lastState;
+
+        public static string GetFullPathOrNull(string fileName)
+        {
+            if (File.Exists(fileName))
+                return fileName;
+
+            var values = Environment.GetEnvironmentVariable("PATH");
+            foreach (var path in values.Split(Path.PathSeparator))
+            {
+                var fullPath = Path.Combine(path, fileName);
+                if (File.Exists(fullPath))
+                    return fullPath;
+            }
+
+            var root = Directory.GetParent(System.Reflection.Assembly.GetEntryAssembly().Location).FullName;
+            var exe = Path.Combine(root, fileName);
+            if (File.Exists(exe))
+                return exe;
+
+            return null;
+        }
+
+        public void Dispose()
+        {
+            if (isDisposed)
+                return;
+            isDisposed = true;
+            embedServiceSupervisor?.Dispose();
         }
     }
 }

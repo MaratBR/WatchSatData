@@ -1,5 +1,6 @@
 ﻿
 using Prism.Commands;
+using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,7 +11,7 @@ using System.Windows.Input;
 
 namespace WatcherSatData_UI.ViewModels
 {
-    public abstract class LoadingDataViewModel<TData> : ViewModelBase
+    public abstract class LoadingDataViewModel<TData> : ViewModelBase, INavigationAware
     {
         private TData data;
 
@@ -57,5 +58,13 @@ namespace WatcherSatData_UI.ViewModels
             }
         }
 
+        public async void OnNavigatedTo(NavigationContext navigationContext)
+        {
+            await RefreshData();
+        }
+
+        public bool IsNavigationTarget(NavigationContext navigationContext) => false;
+
+        public void OnNavigatedFrom(NavigationContext navigationContext) {}
     }
 }

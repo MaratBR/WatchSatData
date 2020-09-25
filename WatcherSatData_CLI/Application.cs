@@ -165,6 +165,7 @@ namespace WatcherSatData_CLI
 
             var fileTarget = new FileTarget("logfile") 
             {
+                AutoFlush = true,
                 FileName = Path.Combine(options.Root, options.LogFileName),
                 Encoding = Encoding.UTF8
             };
