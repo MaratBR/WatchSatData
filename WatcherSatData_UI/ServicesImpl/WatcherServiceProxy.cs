@@ -16,7 +16,7 @@ namespace WatcherSatData_UI.ServicesImpl
         private IService inner;
         private WatcherServiceProvider provider;
         private int retriesCount;
-        private bool available = true;
+        private bool available = false;
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public event EventHandler<ServiceStateChangedEventArgs> StateChanged;
@@ -91,6 +91,10 @@ namespace WatcherSatData_UI.ServicesImpl
                     OnAvailabilityStatusChanged(true);
                     return value;
                 }
+                catch (EndpointNotFoundException _exc)
+                {
+                    throw new ServiceUnavailableException("Сервис недоступен", _exc);
+                }
                 catch (Exception _exc)
                 {
                     if (_exc is CommunicationObjectFaultedException)
@@ -101,9 +105,8 @@ namespace WatcherSatData_UI.ServicesImpl
                 }
             }
             inner = null;
-            logger.Debug($"Не удалось выполнить операцию за {retriesCount} попыток, сервис недоступен");
-            OnAvailabilityStatusChanged(false);
-            throw exc;
+            logger.Debug($"Не удалось выполнить операцию за {retriesCount} попыток");
+            throw new ServiceFaultException("Произшла ошибка на стороне сервера", exc);
         }
 
         public async Task TryNTimesAsync(Func<IService, Task> func)
@@ -118,6 +121,10 @@ namespace WatcherSatData_UI.ServicesImpl
                     OnAvailabilityStatusChanged(true);
                     return;
                 }
+                catch (EndpointNotFoundException _exc)
+                {
+                    throw new ServiceUnavailableException("Сервис недоступен", _exc);
+                }
                 catch (Exception _exc)
                 {
                     if (_exc is CommunicationObjectFaultedException)
@@ -128,9 +135,8 @@ namespace WatcherSatData_UI.ServicesImpl
                 }
             }
             inner = null;
-            logger.Debug($"Не удалось выполнить операцию за {retriesCount} попыток, сервис недоступен");
-            OnAvailabilityStatusChanged(false);
-            throw exc;
+            logger.Debug($"Не удалось выполнить операцию за {retriesCount} попыток");
+            throw new ServiceFaultException("Произшла ошибка на стороне сервера", exc);
         }
 
         private void OnAvailabilityStatusChanged(bool v)

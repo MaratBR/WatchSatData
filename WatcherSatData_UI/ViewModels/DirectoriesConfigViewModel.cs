@@ -16,7 +16,7 @@ using WatchSatData.DataStore;
 
 namespace WatcherSatData_UI.ViewModels
 {
-    public class DirectoriesConfigViewModel : LoadingDataViewModel<IEnumerable<DirectoryConfigViewModel>>
+    public class DirectoriesConfigViewModel : LoadingDataViewModel<IEnumerable<DirectoryConfigViewModel>>, IDisposable, IServiceStateListener
     {
 
         private IWatcherServiceProvider _serviceProvider;
@@ -50,20 +50,10 @@ namespace WatcherSatData_UI.ViewModels
             if (serviceProvider == null)
                 throw new ArgumentNullException(nameof(serviceProvider));
             _serviceProvider = serviceProvider;
-            serviceProvider.StateChanged += ServiceProvider_StateChanged;
+            serviceProvider.SubscribeToServiceState(this);
 
             Save = new DelegateCommand(async () => await SaveImpl());
             Add = new DelegateCommand(AddNewImpl);
-        }
-        ~DirectoriesConfigViewModel()
-        {
-            _serviceProvider.StateChanged -= ServiceProvider_StateChanged;
-        }
-
-        private async void ServiceProvider_StateChanged(object sender, ServiceStateChangedEventArgs e)
-        {
-            if (e.Available)
-                await RefreshData();
         }
 
         private async Task SaveImpl()
@@ -93,6 +83,17 @@ namespace WatcherSatData_UI.ViewModels
                 };
                 l.Add(vm);
             }
+        }
+
+        public void Dispose()
+        {
+            _serviceProvider.UnsubscribeFromServiceState(this);
+        }
+
+        public async void OnServiceStateChanged(object sender, ServiceStateChangedEventArgs e)
+        {
+            if (e.Available)
+                await RefreshData();
         }
 
         protected override async Task<IEnumerable<DirectoryConfigViewModel>> LoadData()

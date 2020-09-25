@@ -8,6 +8,7 @@ using System.ServiceModel;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using WatcherSatData_UI.Exceptions;
 using WatcherSatData_UI.Services;
 using WatcherSatData_UI.Utils.Proc;
@@ -27,7 +28,7 @@ namespace WatcherSatData_UI.ServicesImpl
         private Task pinger;
         private bool isInitialized = false;
         private bool isDisposed = false;
-        private ServiceState? lastState = null;
+        private ServiceState lastState = ServiceState.Default;
 
         public WatcherServiceProvider()
         {
@@ -42,10 +43,13 @@ namespace WatcherSatData_UI.ServicesImpl
         public async Task InitAsync()
         {
             if (isInitialized)
-                return;
+                throw new ServiceProviderInvalidException("ServiceProvider уже инициализирован");
+
             logger.Debug("Инициализация...");
             isInitialized = true;
+
             InitService();
+
             if (!await CheckAvailability())
             {
                 logger.Debug("Сервис не запущен, запускаю встроенный сервис...");
@@ -59,8 +63,9 @@ namespace WatcherSatData_UI.ServicesImpl
 
         private void InitService()
         {
-            service = new WatcherServiceProxy(this, 5);
-            ((WatcherServiceProxy)service).StateChanged += WatcherServiceProxy_StateChanged;
+            var proxy = new WatcherServiceProxy(this, 5);
+            proxy.StateChanged += WatcherServiceProxy_StateChanged;
+            service = proxy;
 
             pinger = PingLoop();
         }
@@ -69,8 +74,10 @@ namespace WatcherSatData_UI.ServicesImpl
         {
             while (true)
             {
+                // CheckAvailability вызывает метод Ping на proxy сервиса, если метод падает с ошибкой ServiceUnavailable,
+                // тригирится событие обновления состояния сервиса (состояние меняется на Offline)
                 await CheckAvailability();
-                await Task.Delay(5000);
+                await Task.Delay(2500);
             }
         }
 
@@ -100,6 +107,7 @@ namespace WatcherSatData_UI.ServicesImpl
                 UseShellExecute = false,
                 RedirectStandardOutput = true
             });
+            embedServiceSupervisor.Start();
         }
 
         private string GetServiceExeFileOrNull()
@@ -120,21 +128,21 @@ namespace WatcherSatData_UI.ServicesImpl
                 await service.Ping();
                 return true;
             }
-            catch (EndpointNotFoundException)
+            catch (ServiceUnavailableException)
             {
                 return false;
             }
-            catch (CommunicationObjectFaultedException)
+            catch (ServiceFaultException)
             {
-                return false;
+                return true;
             }
         }
 
         private void WatcherServiceProxy_StateChanged(object sender, ServiceStateChangedEventArgs e)
         {
             logger.Debug($"Статус сервиса: {e.State}");
-            StateChanged?.Invoke(this, e);
             lastState = e.State;
+            StateChanged?.Invoke(this, e);
         }
 
         private void ThrowIfNotInitializedOrDisposed()
@@ -169,7 +177,7 @@ namespace WatcherSatData_UI.ServicesImpl
             return embedServiceSupervisor != null;
         }
 
-        public ServiceState? GetLastState() => lastState;
+        public ServiceState GetLastState() => lastState;
 
         public static string GetFullPathOrNull(string fileName)
         {

@@ -4,32 +4,15 @@ using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WatcherSatData_UI.ViewModels;
 using WatchSatData;
 
 namespace WatcherSatData_UI.Services
 {
-    public enum ServiceState
-    { 
-        Offline,
-        Online,
-        ExpectingOnline
-    }
-
-    public class ServiceStateChangedEventArgs : EventArgs
-    {
-        public ServiceStateChangedEventArgs(bool available)
-        {
-            State = available ? ServiceState.Online : ServiceState.Offline;
-        }
-
-        public bool Available => State == ServiceState.Online;
-
-        public ServiceState State { get; }
-    }
 
     public interface IWatcherServiceProvider : IDisposable
     {
-        ServiceState? GetLastState();
+        ServiceState GetLastState();
 
         IService GetService();
 
@@ -38,5 +21,20 @@ namespace WatcherSatData_UI.Services
         bool IsEmbed();
 
         event EventHandler<ServiceStateChangedEventArgs> StateChanged;
+    }
+
+    public static class WatcherServiceProviderExtensions
+    {
+        public static void SubscribeToServiceState(this IWatcherServiceProvider provider, IServiceStateListener listener)
+        {
+            provider.StateChanged += listener.OnServiceStateChanged;
+            listener.OnServiceStateChanged(provider, new ServiceStateChangedEventArgs(provider.GetLastState()));
+        }
+
+        public static void UnsubscribeFromServiceState(this IWatcherServiceProvider provider, IServiceStateListener listener)
+        {
+            provider.StateChanged += listener.OnServiceStateChanged;
+            listener.OnServiceStateChanged(provider, new ServiceStateChangedEventArgs(provider.GetLastState()));
+        }
     }
 }

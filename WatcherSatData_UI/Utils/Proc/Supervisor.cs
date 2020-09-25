@@ -12,9 +12,11 @@ namespace WatcherSatData_UI.Utils.Proc
 {
     class Supervisor : IDisposable
     {
+        public event EventHandler<SupervisorStateChangedEventArgs> StateChanged;
+        public Process Process { get; private set; }
+
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public Process Process { get; private set; }
         private ProcessStartInfo _info;
         private Thread observerThread;
         private int? processId;
@@ -23,8 +25,6 @@ namespace WatcherSatData_UI.Utils.Proc
         public Supervisor(ProcessStartInfo info)
         {
             _info = info;
-
-            Start();
         }
 
         private void StartObserver()
@@ -55,7 +55,18 @@ namespace WatcherSatData_UI.Utils.Proc
                 catch(ArgumentException)
                 {
                     logger.Debug($"Процесс PID={processId} умер, перезапуск ...");
-                    context.Post(_s => Restart(), null);
+                    context.Post(_s =>
+                    {
+                        if (Process == null || !Process.HasExited)
+                        {
+                            // примечание: если условие выше не выполнятеся это означает, что дочерний процесс
+                            // либо завершился по нормальному (а значит событие StateChanged было вызвано в Process_Exited), 
+                            // либо что произошла какая-то дичь (скорее первое)
+                            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs { IsAlive = false });
+
+                        }
+                        Restart();
+                    }, null);
                 }
                 Thread.Sleep(10000);
             }
@@ -72,7 +83,7 @@ namespace WatcherSatData_UI.Utils.Proc
             Start();
         }
 
-        private void Start()
+        public void Start()
         {
             logger.Debug($"Запуск дочернего процесса {_info.FileName} ...");
 
@@ -88,6 +99,7 @@ namespace WatcherSatData_UI.Utils.Proc
             }
 
             SubscribeToEvents();
+            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs { IsAlive = true });
         }
 
         private void SubscribeToEvents()
@@ -101,6 +113,7 @@ namespace WatcherSatData_UI.Utils.Proc
 
         private void Process_Exited(object sender, EventArgs e)
         {
+            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs { IsAlive = false });
             UnsubscribeFromEvents();
         }
 

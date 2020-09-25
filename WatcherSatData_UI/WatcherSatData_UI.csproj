@@ -119,16 +119,24 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Exceptions\ServiceProviderInvalidException.cs" />
+    <Compile Include="Exceptions\AppBaseException.cs" />
+    <Compile Include="ServicesImpl\ServiceException.cs" />
+    <Compile Include="ServicesImpl\ServiceFaultException.cs" />
+    <Compile Include="ServicesImpl\ServiceProviderInvalidException.cs" />
     <Compile Include="MainModule.cs" />
+    <Compile Include="ServicesImpl\ServiceUnavailableException.cs" />
     <Compile Include="ServicesImpl\WatcherServiceProvider.cs" />
+    <Compile Include="Services\IServiceStateListener.cs" />
     <Compile Include="Services\IWatcherServiceProvider.cs" />
     <Compile Include="ServicesImpl\WatcherServiceProxy.cs" />
+    <Compile Include="Services\ServiceState.cs" />
+    <Compile Include="Services\ServiceStateChangedEventArgs.cs" />
     <Compile Include="Utils\Converters\BooleanConverter.cs" />
     <Compile Include="Utils\Converters\RowToIndexConv.cs" />
     <Compile Include="Utils\DebounceDispatcher.cs" />
     <Compile Include="Utils\Proc\Job.cs" />
     <Compile Include="Utils\Proc\Supervisor.cs" />
+    <Compile Include="Utils\Proc\SupervisorStateChangedEventArgs.cs" />
     <Compile Include="Utils\Watermark\WatermarkAdorner.cs" />
     <Compile Include="Utils\Watermark\WatermarkService.cs" />
     <Compile Include="ViewModels\DirectoriesConfigViewModel.cs" />

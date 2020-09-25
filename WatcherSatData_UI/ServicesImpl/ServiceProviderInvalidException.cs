@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WatcherSatData_UI.Exceptions;
 
-namespace WatcherSatData_UI.Exceptions
+namespace WatcherSatData_UI.ServicesImpl
 {
     [Serializable]
-    public class ServiceProviderInvalidException : Exception
+    public class ServiceProviderInvalidException : AppBaseException
     {
         public ServiceProviderInvalidException() { }
         public ServiceProviderInvalidException(string message) : base(message) { }
