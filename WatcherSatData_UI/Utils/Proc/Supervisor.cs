@@ -15,7 +15,7 @@ namespace WatcherSatData_UI.Utils.Proc
         private ProcessStartInfo _info;
         private Thread observerThread;
         private int? processId;
-
+        private Job job = new Job();
 
         public Supervisor(ProcessStartInfo info)
         {
@@ -31,6 +31,11 @@ namespace WatcherSatData_UI.Utils.Proc
                 IsBackground = true,
             };
             observerThread.Start(SynchronizationContext.Current);
+            if (processId != null)
+            {
+                var proc = Process.GetProcessById((int)processId);
+                job.AddProcess(proc.Handle);
+            }
         }
 
         private void ObserveProcess(SynchronizationContext context)

@@ -122,6 +122,7 @@
     <Compile Include="Utils\Converters\BooleanConverter.cs" />
     <Compile Include="Utils\Converters\RowToIndexConv.cs" />
     <Compile Include="Utils\DebounceDispatcher.cs" />
+    <Compile Include="Utils\Proc\Job.cs" />
     <Compile Include="Utils\Proc\Supervisor.cs" />
     <Compile Include="Utils\Watermark\WatermarkAdorner.cs" />
     <Compile Include="Utils\Watermark\WatermarkService.cs" />
