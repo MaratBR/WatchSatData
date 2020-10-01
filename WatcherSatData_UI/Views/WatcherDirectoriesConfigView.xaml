@@ -11,6 +11,14 @@
     <UserControl.Resources>
         <conv:RowToIndexConv x:Key="RowToIndexConv"/>
         <conv:BooleanConverter x:Key="BooleanToDeletedText" TrueValue="Отменить удаление" FalseValue="Удалить" />
+        <conv:BooleanConverter x:Key="BooleanServiceAvailabilityToBackBarBackgroundColor">
+            <conv:BooleanConverter.TrueValue>
+                <SolidColorBrush Color="#FF007ACC" />
+            </conv:BooleanConverter.TrueValue>
+            <conv:BooleanConverter.FalseValue>
+                <SolidColorBrush Color="Red" />
+            </conv:BooleanConverter.FalseValue>
+        </conv:BooleanConverter>
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -22,6 +30,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBox
@@ -81,6 +90,20 @@
             </StackPanel>
         </Border>
 
+        <StackPanel 
+            Grid.Row="2" 
+            Grid.ColumnSpan="3" 
+            Height="24" HorizontalAlignment="Stretch"
+            VerticalAlignment="Bottom"
+            Panel.ZIndex="100"
+            Background="{Binding ServiceAvailable, Converter={StaticResource BooleanServiceAvailabilityToBackBarBackgroundColor}}"
+            TextBlock.Foreground="White">
+            <TextBlock 
+                ToolTip="Состояние сервиса"
+                Padding="2"
+                Text="{Binding ServiceState}" />
+        </StackPanel>
+
         <DataGrid 
             ItemsSource="{Binding Data}" 
             Grid.ColumnSpan="2" Grid.Column="1" Grid.Row="1" 
@@ -99,9 +122,9 @@
                 <DataGridTextColumn Header="Время жизни" Binding="{Binding MaxAge, Mode=TwoWay}" />
                 <DataGridTextColumn Header="Имя" Binding="{Binding Alias}" />
                 <DataGridTextColumn Header="Добавлено" Binding="{Binding AddedAt}" IsReadOnly="True" />
-                <DataGridTextColumn Header="Последняя очистка" Binding="{Binding LastCleanUp}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Последняя очистка" Binding="{Binding LastCleanup}" IsReadOnly="True" />
                 <DataGridCheckBoxColumn IsReadOnly="True" Header="Существует" Binding="{Binding Exists, Mode=OneWay}" />
-                
+
                 <DataGridTemplateColumn IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -113,7 +136,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                
+
                 <DataGridTemplateColumn Header="Изм." IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -126,18 +149,6 @@
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
-
-        <Rectangle 
-            IsHitTestVisible="False"
-            Style="{StaticResource VisibleAnimation}"
-            Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="100" VerticalAlignment="Bottom">
-            <Rectangle.Fill>
-                <LinearGradientBrush StartPoint=".5,0" EndPoint=".5,1">
-                    <GradientStop Color="Transparent" Offset="0" />
-                    <GradientStop Color="#55000000" Offset="1" />
-                </LinearGradientBrush>
-            </Rectangle.Fill>
-        </Rectangle>
 
     </Grid>
 </UserControl>

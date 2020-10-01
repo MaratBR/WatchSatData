@@ -169,7 +169,8 @@ namespace WatcherSatData_CLI
                 FileName = Path.Combine(options.Root, options.LogFileName),
                 Encoding = Encoding.UTF8
             };
-            fileTarget.Layout = new SimpleLayout();
+            fileTarget.Layout = new SimpleLayout("${longdate}|${level:uppercase=true}|${logger}|${message}");
+
 
             var consoleTarget = new ConsoleTarget("console");
             consoleTarget.Layout = new SimpleLayout("${longdate}|${level:uppercase=true}|${logger}|Thread-${threadid}|${message}");
@@ -197,7 +198,7 @@ namespace WatcherSatData_CLI
             IEnumerable<DirectoryState> expired;
             while (true)
             {
-                expired = await watcher.GetExpiredDirectories();
+                expired = (await watcher.GetExpiredDirectories()).ToList();
                 if (expired.Count() == 0)
                 {
                     DateTime? nextCleanup = await watcher.GetNextCleaupTime();
@@ -212,7 +213,7 @@ namespace WatcherSatData_CLI
                     }
                     else
                     {
-                        logger.Debug($"Следуящая очистка - {nextCleanup}");
+                        logger.Debug($"Следующая очистка - {nextCleanup}");
                         await Task.WhenAny(
                            WaitForConfigChange(),
                            Task.Delay((DateTime)nextCleanup - DateTime.Now)
@@ -232,13 +233,16 @@ namespace WatcherSatData_CLI
             }
         }
 
-        private void CleanUpDirectory(DirectoryState record)
+        private async void CleanUpDirectory(DirectoryState record)
         {
             foreach (var sub in record.SubDirectories)
             {
                 if (sub.IsExpired)
                     Directory.Delete(sub.FullPath, true);
             }
+            var d = (DirectoryCleanupConfig)record.Config.Clone();
+            d.LastCleanupTime = DateTime.Now;
+            await watcher.DataStore.UpdateDirectory(d);
         }
 
         private Task WaitForConfigChange()

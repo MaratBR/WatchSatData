@@ -93,6 +93,7 @@ namespace WatcherSatData_UI.ServicesImpl
                 }
                 catch (EndpointNotFoundException _exc)
                 {
+                    OnAvailabilityStatusChanged(false);
                     throw new ServiceUnavailableException("Сервис недоступен", _exc);
                 }
                 catch (Exception _exc)
@@ -123,6 +124,7 @@ namespace WatcherSatData_UI.ServicesImpl
                 }
                 catch (EndpointNotFoundException _exc)
                 {
+                    OnAvailabilityStatusChanged(false);
                     throw new ServiceUnavailableException("Сервис недоступен", _exc);
                 }
                 catch (Exception _exc)

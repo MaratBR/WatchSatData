@@ -22,6 +22,7 @@ namespace WatcherSatData_UI.ViewModels
         private IWatcherServiceProvider _serviceProvider;
 
         private string queryString;
+        private Services.ServiceState serviceState;
         private readonly DebounceDispatcher debounceDispatcher = new DebounceDispatcher();
 
         public ICommand Save { get; }
@@ -43,6 +44,17 @@ namespace WatcherSatData_UI.ViewModels
                 }
             }
         }
+
+        public Services.ServiceState ServiceState { 
+            get => serviceState; 
+            set
+            {
+                Set(ref serviceState, value);
+                OnPropertyChanged(nameof(ServiceAvailable));
+            }
+        }
+
+        public bool ServiceAvailable => ServiceState != Services.ServiceState.Offline;
 
         public DirectoriesConfigViewModel(
             IWatcherServiceProvider serviceProvider)
@@ -94,6 +106,8 @@ namespace WatcherSatData_UI.ViewModels
         {
             if (e.Available)
                 await RefreshData();
+
+            ServiceState = e.State;
         }
 
         protected override async Task<IEnumerable<DirectoryConfigViewModel>> LoadData()

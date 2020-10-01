@@ -49,6 +49,7 @@ namespace WatcherSatData_UI.ServicesImpl
             isInitialized = true;
 
             InitService();
+            StateChanged?.Invoke(this, new ServiceStateChangedEventArgs(ServiceState.ExpectingOnline));
 
             if (!await CheckAvailability())
             {
@@ -103,9 +104,7 @@ namespace WatcherSatData_UI.ServicesImpl
             {
                 FileName = exe,
                 Arguments = $"--parent-pid {parent.Id}",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true
+                CreateNoWindow = true
             });
             embedServiceSupervisor.Start();
         }

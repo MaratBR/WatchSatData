@@ -95,6 +95,7 @@ namespace WatcherSatData_UI.ViewModels
             Exists = config.Exists;
             MaxAge = config.MaxAge;
             AddedAt = config.AddedAt;
+            LastCleanup = config.LastCleanupTime;
             IsChanged = false;
             OnPropertyChanged(nameof(IsNew));
         }

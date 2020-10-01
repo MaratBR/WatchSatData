@@ -31,6 +31,9 @@ namespace WatchSatData.DataStore
         [DataMember]
         public string Filter { get; set; }
 
+        [DataMember]
+        public DateTime? LastCleanupTime { get; set; }
+
         public static DateTime ExpirationDate(DateTime lastModified, int maxAgeInDays)
         {
             return lastModified.Date.AddDays(maxAgeInDays);
@@ -44,6 +47,7 @@ namespace WatchSatData.DataStore
             MaxAge = MaxAge,
             Exists = Exists,
             Filter = Filter,
+            LastCleanupTime = LastCleanupTime,
             Id = Id
         };
     }
