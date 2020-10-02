@@ -50,5 +50,14 @@ namespace WatchSatData.DataStore
             LastCleanupTime = LastCleanupTime,
             Id = Id
         };
+
+        public void Normalize()
+        {
+            // 0.000231481482 дней = 20 секунд
+            if (MaxAge < 0.000231481482)
+            {
+                MaxAge = 0.000231481482;
+            }
+        }
     }
 }

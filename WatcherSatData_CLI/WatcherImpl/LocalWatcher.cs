@@ -26,7 +26,7 @@ namespace WatcherSatData_CLI.WatcherImpl
         }
 
 
-        public async Task<IEnumerable<DirectoryState>> GetAvailableParentDirectoriesStates()
+        public async Task<IEnumerable<DirectoryState>> GetAvailableDirectoriesStates()
         {
             return (await GetParentDirectories()).Select(GetState);
         }
@@ -37,42 +37,20 @@ namespace WatcherSatData_CLI.WatcherImpl
             return new DirectoryState
             {
                 Config = config,
-                SubDirectories = dirInfo.GetDirectories().Select(
-                    d => new SubDirectoryState
-                    {
-                        Name = d.Name,
-                        FullPath = d.FullName,
-                        LastWriteTime = d.LastWriteTime,
-                        ExpirationTime = d.LastWriteTime + TimeSpan.FromDays(config.MaxAge)
-                    }).ToList()
+                ExpirationTime = dirInfo.LastWriteTime.AddDays(config.MaxAge),
+                NumberOfChildren = dirInfo.GetDirectories().Length
             };
-        }
-
-        public async Task<IEnumerable<SubDirectoryState>> GetSubDirectories()
-        {
-            var now = DateTime.Now;
-            return (await GetAvailableParentDirectoriesStates())
-                .SelectMany(s => s.SubDirectories);
-        }
-
-
-        public async Task<IEnumerable<SubDirectoryState>> GetExpiredSubDerectories()
-        {
-            return from sub in await GetSubDirectories()
-                   where sub.IsExpired
-                   select sub;
         }
 
         public async Task<IEnumerable<DirectoryState>> GetExpiredDirectories()
         {
-            return (await GetAvailableParentDirectoriesStates())
-                .Where(s => s.SubDirectories.Any(sub => sub.IsExpired));
+            return (await GetAvailableDirectoriesStates()).Where(s => s.IsExpired);
         }
 
         public async Task<DateTime?> GetNextCleaupTime()
         {
             var now = DateTime.Now;
-            return (await GetSubDirectories())
+            return (await GetAvailableDirectoriesStates())
                 .Where(s => !s.IsExpired)
                 .OrderBy(s => s.ExpirationTime)
                 .FirstOrDefault()

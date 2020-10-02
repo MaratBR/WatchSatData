@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WatcherSatData_CLI.IO;
 using WatchSatData.DataStore;
 using WatchSatData.Exceptions;
 
@@ -15,10 +16,9 @@ namespace WatcherSatData_CLI.WatcherImpl
         private static Logger logger = LogManager.GetCurrentClassLogger();
         private List<DirectoryCleanupConfig> records;
         private AbstractFileDataStoreOptions options;
-        private FileSystemWatcher fsWatcher;
         private bool needsRefresh;
 
-        public event EventHandler<DataStoreChangedEventArgs> Changed;
+        public event EventHandler Changed;
 
         public string Location { get; }
 
@@ -26,29 +26,6 @@ namespace WatcherSatData_CLI.WatcherImpl
         {
             Location = filePath;
             this.options = options;
-
-            fsWatcher = new FileSystemWatcher();
-            fsWatcher.Path = Path.GetDirectoryName(filePath);
-            fsWatcher.Filter = Path.GetFileName(filePath);
-            fsWatcher.NotifyFilter = NotifyFilters.LastWrite;
-            fsWatcher.Changed += FsWatcher_Changed;
-            fsWatcher.EnableRaisingEvents = true;
-        }
-
-        private async void FsWatcher_Changed(object sender, FileSystemEventArgs e)
-        {
-            try
-            {
-                needsRefresh = true;
-                // Это нужно, чтобы исправить странный баг FileSystemWatcher'а, когда событие вызывается дважды
-                fsWatcher.EnableRaisingEvents = false;
-                await Task.Delay(400);
-                Changed?.Invoke(this, new DataStoreChangedEventArgs { Type = DataStoreChangedEventArgs.Change.Refresh });
-            }
-            finally
-            {
-                fsWatcher.EnableRaisingEvents = true;
-            }
         }
 
         #region IService implementation
@@ -67,6 +44,7 @@ namespace WatcherSatData_CLI.WatcherImpl
 
             records.Insert(0, directory);
             await PutAllDataAndHandleExceptions();
+            Changed?.Invoke(this, EventArgs.Empty);
         }
 
         public async Task DeleteDirectory(Guid id)
@@ -82,6 +60,7 @@ namespace WatcherSatData_CLI.WatcherImpl
             {
                 records.RemoveAt(index);
                 await PutAllDataAndHandleExceptions();
+                Changed?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -92,8 +71,10 @@ namespace WatcherSatData_CLI.WatcherImpl
             if (index != -1)
             {
                 records[index] = (DirectoryCleanupConfig)directory.Clone();
+                records[index].Normalize();
                 records[index].FullPath = PathUtils.NormalizePath(directory.FullPath);
                 await PutAllDataAndHandleExceptions();
+                Changed?.Invoke(this, EventArgs.Empty);
             }
             else
             {
@@ -134,7 +115,7 @@ namespace WatcherSatData_CLI.WatcherImpl
             }
             catch (Exception exc)
             {
-                throw new PersistenceDataStoreException("Failed to persist all data, check inner exception for more info", exc);
+                throw new PersistenceDataStoreException("Не удалось сохранить данные, проверьте InnerException для подробной информации", exc);
             }
         }
 
@@ -150,14 +131,14 @@ namespace WatcherSatData_CLI.WatcherImpl
                 }
                 catch (Exception exc)
                 {
-                    throw new PersistenceDataStoreException("Failed to retrieve all data, check inner exception for more info", exc);
+                    throw new PersistenceDataStoreException("Не удалось получить данные, проверьте InnerException для подробной информации", exc);
                 }
             }
         }
 
         protected async Task<List<DirectoryCleanupConfig>> GetAllData()
         {
-            using (var file = await OpenFile(true))
+            using (var file = await OpenFile())
             using (var reader = new StreamReader(file))
             {
                 var dateStr = await reader.ReadToEndAsync();
@@ -177,7 +158,7 @@ namespace WatcherSatData_CLI.WatcherImpl
             }
         }
 
-        private async Task<FileStream> OpenFile(bool onlyRead = false)
+        private async Task<FileStream> OpenFile()
         {
             var fileNotExists = !File.Exists(Location);
             if (fileNotExists)
@@ -186,15 +167,15 @@ namespace WatcherSatData_CLI.WatcherImpl
                 if (!Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
             }
-            var file = File.Open(Location, FileMode.OpenOrCreate, onlyRead ? FileAccess.Read : FileAccess.ReadWrite, onlyRead ? FileShare.ReadWrite : FileShare.Read);
+            FileStream file = await FileHelper.OpenFileWithAttemts(Location, FileMode.OpenOrCreate, 5);
 
             if (fileNotExists)
             {
-                var dataStr = ConvertToString(new List<DirectoryCleanupConfig>());
-                var data = Encoding.UTF8.GetBytes(dataStr);
+                var data = Encoding.UTF8.GetBytes("[]");
                 await file.WriteAsync(data, 0, data.Length);
-                file.Seek(0, SeekOrigin.Begin);
+                await file.FlushAsync();
                 file.SetLength(data.Length);
+                file.Seek(0, SeekOrigin.Begin);
             }
 
             return file;

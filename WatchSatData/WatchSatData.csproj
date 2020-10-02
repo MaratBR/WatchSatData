@@ -48,7 +48,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DataStore\DataStoreChangedEventArgs.cs" />
     <Compile Include="DataStore\DirectoryCleanupConfig.cs" />
     <Compile Include="Exceptions\DataStoreException.cs" />
     <Compile Include="Exceptions\DirectoryConfigNotFoundException.cs" />

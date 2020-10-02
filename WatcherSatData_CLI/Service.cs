@@ -48,7 +48,7 @@ namespace WatcherSatData_CLI
 
         public Task<IEnumerable<DirectoryState>> GetDirectoryStates()
         {
-            return watcher.GetAvailableParentDirectoriesStates();
+            return watcher.GetAvailableDirectoriesStates();
         }
 
         public Task UpdateDirectory(DirectoryCleanupConfig record)

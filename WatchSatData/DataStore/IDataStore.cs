@@ -47,6 +47,6 @@ namespace WatchSatData.DataStore
 
         string Location { get; }
 
-        event EventHandler<DataStoreChangedEventArgs> Changed;
+        event EventHandler Changed;
     }
 }

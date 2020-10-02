@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using WatcherSatData_CLI.WatcherImpl;
 using WatchSatData;
 using WatchSatData.DataStore;
+using WatchSatData.Exceptions;
 using WatchSatData.Watcher;
 
 namespace WatcherSatData_CLI
@@ -49,13 +50,13 @@ namespace WatcherSatData_CLI
             private const bool IS_DEBUG = false;
 #endif
 
-            [Option('d', "root", Required = false, Default = "%HOMEPATH%\\.watch-sat", HelpText = "Папка с конфигурационным файлом")]
+            [Option('d', "root", Required = false, Default = "%APPDATA%\\SatDataWatcher\\Service", HelpText = "Папка с конфигурационным файлом")]
             public string Root { get; set; }
 
             [Option('c', "cfg", Required = false, Default = "watchSat.json", HelpText = "Имя файла конфигурации")]
             public string ConfigFileName { get; set; }
 
-            [Option('l', "log", Required = false, Default = "watchSat.log", HelpText = "Имя файла журнала")]
+            [Option('l', "log-file", Required = false, Default = "watchSat.log", HelpText = "Имя файла журнала")]
             public string LogFileName { get; set; }
 
             [Option('p', "pretty-cfg", Default = IS_DEBUG)]
@@ -92,6 +93,8 @@ namespace WatcherSatData_CLI
             }
 
             InitLog();
+
+            Directory.CreateDirectory(options.Root);
 
             watcher = new LocalWatcher(
                 new JsonDataStore(
@@ -141,6 +144,14 @@ namespace WatcherSatData_CLI
             return 0;
         }
 
+        private void DataStore_Changed(object sender, EventArgs e)
+        {
+            if (configChangeSource != null && !configChangeSource.Task.IsCompleted)
+            {
+                configChangeSource.TrySetResult(new object());
+            }
+        }
+
         private async Task ObserveParent()
         {
             while (true)
@@ -184,21 +195,31 @@ namespace WatcherSatData_CLI
             LogManager.Configuration = config;
         }
 
-        private void DataStore_Changed(object sender, DataStoreChangedEventArgs e)
-        {
-            logger.Info("Конфигурация была обновлена");
-            if (configChangeSource != null && !configChangeSource.Task.IsCompleted)
-            {
-                configChangeSource.TrySetResult(new object());
-            }
-        }
 
         private async Task StartWatcherAsync()
         {
             IEnumerable<DirectoryState> expired;
             while (true)
             {
-                expired = (await watcher.GetExpiredDirectories()).ToList();
+                try
+                {
+                    expired = await watcher.GetExpiredDirectories();
+                    expired = expired.ToList();
+                }
+                catch (InvalidOperationException)
+                {
+                    // на случай если обновление конфигурации произошло только что
+                    await Task.Delay(500);
+
+                    continue;
+                }
+                catch (PersistenceDataStoreException exc)
+                {
+                    logger.Error($"Не удалось записать/прочитать файл, повторная попытка через 30 сек: {(exc.InnerException == null ? exc.Message : exc.InnerException.Message)}");
+                    await Task.Delay(30000);
+                    continue;
+                }
+
                 if (expired.Count() == 0)
                 {
                     DateTime? nextCleanup = await watcher.GetNextCleaupTime();
@@ -224,8 +245,7 @@ namespace WatcherSatData_CLI
                 {
                     foreach (var dir in expired)
                     {
-                        var subDirs = dir.SubDirectories.Where(s => s.IsExpired);
-                        logger.Debug($"Очистка {dir.Config.FullPath} - {subDirs.Count()} подпапок ({string.Join(", ", subDirs.Select(sd => sd.Name))})");
+                        logger.Debug($"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок");
 
                         CleanUpDirectory(dir);
                     }
@@ -235,14 +255,44 @@ namespace WatcherSatData_CLI
 
         private async void CleanUpDirectory(DirectoryState record)
         {
-            foreach (var sub in record.SubDirectories)
+            foreach (var sub in Directory.GetDirectories(record.Config.FullPath))
             {
-                if (sub.IsExpired)
-                    Directory.Delete(sub.FullPath, true);
+                try
+                {
+                    Directory.Delete(sub);
+                }
+                catch (Exception exc)
+                {
+                    logger.Error($"Не удалось удалить папку {sub}: {exc.Message}");
+                }
             }
             var d = (DirectoryCleanupConfig)record.Config.Clone();
             d.LastCleanupTime = DateTime.Now;
-            await watcher.DataStore.UpdateDirectory(d);
+
+            try
+            {
+                await watcher.DataStore.UpdateDirectory(d);
+            }
+            catch (DirectoryConfigNotFoundException)
+            {
+                logger.Error($"Не удалось обновить поле LastCleanupTime конфигурации {d.Id}, скорее всего файл конфигурации был обновлен извне, и директория {d.FullPath} удалена из конф., это не помешает работе программы.");
+            }
+            catch (PersistenceDataStoreException exc)
+            {
+                logger.Error($"Ошибка при обновлении данных: {exc}");
+            }
+
+
+            var tsFilePath = Path.Combine(record.Config.FullPath, ".last-cleanup");
+            
+            try
+            {
+                File.WriteAllText(tsFilePath, DateTime.Now.ToString());
+            }
+            catch (Exception)
+            {
+                logger.Debug("Не удалось обновить .last-cleanup файл");
+            }
         }
 
         private Task WaitForConfigChange()
