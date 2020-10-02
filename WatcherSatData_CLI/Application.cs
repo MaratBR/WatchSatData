@@ -59,6 +59,9 @@ namespace WatcherSatData_CLI
             [Option('l', "log-file", Required = false, Default = "watchSat.log", HelpText = "Имя файла журнала")]
             public string LogFileName { get; set; }
 
+            [Option('L', "d-log-file", Required = false, Default = "watchSat.log.DEBUG", HelpText = "Имя файла журнала отладки")]
+            public string DebugLogFileName { get; set; }
+
             [Option('p', "pretty-cfg", Default = IS_DEBUG)]
             public bool PrettyConfig { get; set; }
 
@@ -173,6 +176,7 @@ namespace WatcherSatData_CLI
         private void InitLog()
         {
             var config = new LoggingConfiguration();
+            var layout = new SimpleLayout("${longdate}|${level:uppercase=true}|${logger}|${message}");
 
             var fileTarget = new FileTarget("logfile") 
             {
@@ -180,7 +184,15 @@ namespace WatcherSatData_CLI
                 FileName = Path.Combine(options.Root, options.LogFileName),
                 Encoding = Encoding.UTF8
             };
-            fileTarget.Layout = new SimpleLayout("${longdate}|${level:uppercase=true}|${logger}|${message}");
+            fileTarget.Layout = layout;
+
+            var debugFileTarget = new FileTarget("logfile")
+            {
+                AutoFlush = true,
+                FileName = Path.Combine(options.Root, options.DebugLogFileName),
+                Encoding = Encoding.UTF8
+            };
+            debugFileTarget.Layout = layout;
 
 
             var consoleTarget = new ConsoleTarget("console");
@@ -189,8 +201,9 @@ namespace WatcherSatData_CLI
             config.AddTarget(fileTarget);
             config.AddTarget(consoleTarget);
 
-            config.AddRule(LogLevel.Trace, LogLevel.Off, consoleTarget);
-            config.AddRule(LogLevel.Info, LogLevel.Off, fileTarget);
+            config.AddRule(LogLevel.Trace, LogLevel.Fatal, consoleTarget);
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, fileTarget);
+            config.AddRule(LogLevel.Trace, LogLevel.Fatal, debugFileTarget);
 
             LogManager.Configuration = config;
         }
@@ -235,9 +248,13 @@ namespace WatcherSatData_CLI
                     else
                     {
                         logger.Debug($"Следующая очистка - {nextCleanup}");
+                        var delayMs = Math.Min(
+                            Math.Max(1, ((DateTime)nextCleanup - DateTime.Now).TotalMilliseconds),
+                            int.MaxValue
+                            );
                         await Task.WhenAny(
                            WaitForConfigChange(),
-                           Task.Delay((DateTime)nextCleanup - DateTime.Now)
+                           Task.Delay(TimeSpan.FromMilliseconds(delayMs))
                            );
                     }
                 }
@@ -245,7 +262,7 @@ namespace WatcherSatData_CLI
                 {
                     foreach (var dir in expired)
                     {
-                        logger.Debug($"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок");
+                        logger.Info($"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок");
 
                         CleanUpDirectory(dir);
                     }
@@ -255,7 +272,19 @@ namespace WatcherSatData_CLI
 
         private async void CleanUpDirectory(DirectoryState record)
         {
-            foreach (var sub in Directory.GetDirectories(record.Config.FullPath))
+            string[] subDirs;
+
+            try
+            {
+                subDirs = Directory.GetDirectories(record.Config.FullPath);
+            }
+            catch
+            {
+                logger.Debug($"Не удалось получить список подпапок {record.Config.FullPath}");
+                return;
+            }
+
+            foreach (var sub in subDirs)
             {
                 try
                 {
@@ -282,16 +311,14 @@ namespace WatcherSatData_CLI
                 logger.Error($"Ошибка при обновлении данных: {exc}");
             }
 
-
-            var tsFilePath = Path.Combine(record.Config.FullPath, ".last-cleanup");
             
             try
             {
-                File.WriteAllText(tsFilePath, DateTime.Now.ToString());
+                Directory.SetLastWriteTime(record.Config.FullPath, DateTime.Now);
             }
             catch (Exception)
             {
-                logger.Debug("Не удалось обновить .last-cleanup файл");
+                logger.Debug("Не удалось обновить LastWriteTime");
             }
         }
 

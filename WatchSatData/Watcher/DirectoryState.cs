@@ -20,6 +20,6 @@ namespace WatchSatData.DataStore
         [DataMember]
         public int NumberOfChildren { get; set; }
 
-        public bool IsExpired => ExpirationTime <= DateTime.Now + TimeSpan.FromDays(Config.MaxAge) + TimeSpan.FromSeconds(2);
+        public bool IsExpired => ExpirationTime >= DateTime.Now + TimeSpan.FromDays(Config.MaxAge);
     }
 }

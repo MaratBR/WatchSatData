@@ -53,10 +53,10 @@ namespace WatchSatData.DataStore
 
         public void Normalize()
         {
-            // 0.000231481482 дней = 20 секунд
-            if (MaxAge < 0.000231481482)
+            // 0.000694444446 дней = 1 минута
+            if (MaxAge < 0.000694444446)
             {
-                MaxAge = 0.000231481482;
+                MaxAge = 0.000694444446;
             }
         }
     }
