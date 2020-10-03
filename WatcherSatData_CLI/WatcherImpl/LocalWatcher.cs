@@ -56,5 +56,22 @@ namespace WatcherSatData_CLI.WatcherImpl
                 .FirstOrDefault()
                 ?.ExpirationTime;
         }
+
+        public async Task UpdateExistsValue()
+        {
+            var values = await DataStore.GetAll();
+            var tasks = from v in values
+                        let exists = Directory.Exists(v.FullPath)
+                        where exists != v.Exists
+                        select SetExistsValue(v, exists);
+            var tasksList = tasks.ToList();
+            await Task.WhenAll(tasksList);
+        }
+
+        private Task SetExistsValue(DirectoryCleanupConfig v, bool exists)
+        {
+            v.Exists = exists;
+            return DataStore.UpdateDirectory(v);
+        }
     }
 }

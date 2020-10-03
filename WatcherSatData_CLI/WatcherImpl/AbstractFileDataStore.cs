@@ -97,7 +97,7 @@ namespace WatcherSatData_CLI.WatcherImpl
         public async Task<IEnumerable<DirectoryCleanupConfig>> GetAll()
         {
             await EnsureFreshness();
-            return records;
+            return new List<DirectoryCleanupConfig>(records);
         }
 
         public async Task<DirectoryCleanupConfig> GetById(Guid id)

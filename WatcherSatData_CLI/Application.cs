@@ -233,6 +233,15 @@ namespace WatcherSatData_CLI
                     continue;
                 }
 
+                try
+                {
+                    await watcher.UpdateExistsValue();
+                }
+                catch(PersistenceDataStoreException exc)
+                {
+                    logger.Error($"Не удалось обновить поле Exists: {(exc.InnerException == null ? exc.Message : exc.InnerException.Message)}");
+                }
+
                 if (expired.Count() == 0)
                 {
                     DateTime? nextCleanup = await watcher.GetNextCleaupTime();
