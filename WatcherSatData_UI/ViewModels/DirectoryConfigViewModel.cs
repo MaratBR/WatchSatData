@@ -17,7 +17,9 @@ namespace WatcherSatData_UI.ViewModels
 
         private string alias;
         private string fullPath;
+        private string filter;
         private double maxAge;
+        private CleanupTarget target;
         private bool? exists;
         private DateTime? lastCleanup;
         private DateTime addedAt;
@@ -34,6 +36,10 @@ namespace WatcherSatData_UI.ViewModels
         public string Alias { get => alias; set { Set(ref alias, value); OnChanged(); } }
 
         public string FullPath { get => fullPath; set { Set(ref fullPath, value); OnChanged(); } }
+
+        public string Filter { get => filter; set { Set(ref filter, value); OnChanged(); } }
+
+        public CleanupTarget Target { get => target; set { Set(ref target, value); OnChanged(); } }
 
         public double MaxAge { get => maxAge; set { Set(ref maxAge, value); OnChanged(); } }
 
@@ -96,6 +102,8 @@ namespace WatcherSatData_UI.ViewModels
             MaxAge = config.MaxAge;
             AddedAt = config.AddedAt;
             LastCleanup = config.LastCleanupTime;
+            Target = config.CleanupTarget;
+            Filter = config.Filter;
             IsChanged = false;
             OnPropertyChanged(nameof(IsNew));
         }

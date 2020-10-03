@@ -71,7 +71,6 @@ namespace WatcherSatData_CLI.WatcherImpl
             if (index != -1)
             {
                 records[index] = (DirectoryCleanupConfig)directory.Clone();
-                records[index].Normalize();
                 records[index].FullPath = PathUtils.NormalizePath(directory.FullPath);
                 await PutAllDataAndHandleExceptions();
                 Changed?.Invoke(this, EventArgs.Empty);

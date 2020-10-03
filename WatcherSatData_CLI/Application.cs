@@ -282,29 +282,61 @@ namespace WatcherSatData_CLI
 
         private async void CleanUpDirectory(DirectoryState record)
         {
-            string[] subDirs;
+            string[] subDirs = null, files = null;
+            bool hasFilter = !string.IsNullOrWhiteSpace(record.Config.Filter);
 
             try
             {
-                subDirs = Directory.GetDirectories(record.Config.FullPath);
+                if (record.Config.CleanupTarget == CleanupTarget.Directories || record.Config.CleanupTarget == CleanupTarget.All)
+                {
+                    subDirs = hasFilter ?
+                        Directory.GetDirectories(record.Config.FullPath, record.Config.Filter) :
+                        Directory.GetDirectories(record.Config.FullPath);
+                }
+
+                if (record.Config.CleanupTarget == CleanupTarget.Files || record.Config.CleanupTarget == CleanupTarget.All)
+                {
+                    files = hasFilter ?
+                        Directory.GetFiles(record.Config.FullPath, record.Config.Filter) :
+                        Directory.GetFiles(record.Config.FullPath);
+                }
             }
             catch
             {
-                logger.Debug($"Не удалось получить список подпапок {record.Config.FullPath}");
+                logger.Debug($"Не удалось получить список подпапок/файлов {record.Config.FullPath}");
                 return;
             }
 
-            foreach (var sub in subDirs)
+            if (subDirs != null)
             {
-                try
+                foreach (var sub in subDirs)
                 {
-                    Directory.Delete(sub);
-                }
-                catch (Exception exc)
-                {
-                    logger.Error($"Не удалось удалить папку {sub}: {exc.Message}");
+                    try
+                    {
+                        Directory.Delete(sub);
+                    }
+                    catch (Exception exc)
+                    {
+                        logger.Error($"Не удалось удалить папку {sub}: {exc.Message}");
+                    }
                 }
             }
+
+            if (files != null)
+            {
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch (Exception exc)
+                    {
+                        logger.Error($"Не удалось удалить файл {file}: {exc.Message}");
+                    }
+                }
+            }
+
             var d = (DirectoryCleanupConfig)record.Config.Clone();
             d.LastCleanupTime = DateTime.Now;
 

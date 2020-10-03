@@ -37,7 +37,7 @@ namespace WatcherSatData_CLI.WatcherImpl
             return new DirectoryState
             {
                 Config = config,
-                ExpirationTime = dirInfo.LastWriteTime.AddDays(config.MaxAge),
+                ExpirationTime = ApplyMinimumLimit(dirInfo.LastWriteTime.AddDays(config.MaxAge)),
                 NumberOfChildren = dirInfo.GetDirectories().Length
             };
         }
@@ -50,11 +50,23 @@ namespace WatcherSatData_CLI.WatcherImpl
         public async Task<DateTime?> GetNextCleaupTime()
         {
             var now = DateTime.Now;
-            return (await GetAvailableDirectoriesStates())
+            var next = (await GetAvailableDirectoriesStates())
                 .Where(s => !s.IsExpired)
                 .OrderBy(s => s.ExpirationTime)
                 .FirstOrDefault()
                 ?.ExpirationTime;
+
+            return next == null ? null : (DateTime?)ApplyMinimumLimit((DateTime)next);
+        }
+
+        private static DateTime ApplyMinimumLimit(DateTime d)
+        {
+            if (d - DateTime.Now < TimeSpan.FromMinutes(30))
+            {
+                return DateTime.Now.AddMinutes(30);
+            }
+
+            return d;
         }
 
         public async Task UpdateExistsValue()

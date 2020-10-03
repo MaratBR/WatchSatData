@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:api="clr-namespace:WatchSatData.DataStore;assembly=WatchSatData"
+             xmlns:system="clr-namespace:System;assembly=mscorlib"
              xmlns:watermark="clr-namespace:WatcherSatData_UI.Utils.Watermark"
              xmlns:conv="clr-namespace:WatcherSatData_UI.Utils.Converters"
              mc:Ignorable="d" 
@@ -19,6 +20,14 @@
                 <SolidColorBrush Color="Red" />
             </conv:BooleanConverter.FalseValue>
         </conv:BooleanConverter>
+
+
+        <ObjectDataProvider x:Key="cleanupTargetEnum" MethodName="GetValues"
+                            ObjectType="{x:Type system:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="api:CleanupTarget"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -123,6 +132,10 @@
                 <DataGridTextColumn Header="Имя" Binding="{Binding Alias}" />
                 <DataGridTextColumn Header="Добавлено" Binding="{Binding AddedAt}" IsReadOnly="True" />
                 <DataGridTextColumn Header="Последняя очистка" Binding="{Binding LastCleanup}" IsReadOnly="True" />
+                <DataGridComboBoxColumn Header="Цель" 
+                                        ItemsSource="{Binding Source={StaticResource cleanupTargetEnum}}" 
+SelectedItemBinding="{Binding Target}" />
+                <DataGridTextColumn Header="Фильтр" Binding="{Binding Filter}" />
                 <DataGridCheckBoxColumn IsReadOnly="True" Header="Существует" Binding="{Binding Exists, Mode=OneWay}" />
 
                 <DataGridTemplateColumn IsReadOnly="True">
