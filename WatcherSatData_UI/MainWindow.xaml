@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:WatcherSatData_UI"
         mc:Ignorable="d"
         xmlns:prism="http://prismlibrary.com/"
-        Title="MainWindow" Height="450" Width="800">
+        Title="SatDataWatcher UI" Height="450" Width="800">
     <ContentControl
         prism:RegionManager.RegionName="Main" /> 
 </Window>

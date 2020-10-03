@@ -104,7 +104,8 @@ namespace WatcherSatData_UI.ServicesImpl
             {
                 FileName = exe,
                 Arguments = $"--parent-pid {parent.Id}",
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                UseShellExecute = false
             });
             embedServiceSupervisor.Start();
         }

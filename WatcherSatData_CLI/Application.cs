@@ -275,6 +275,7 @@ namespace WatcherSatData_CLI
 
                         CleanUpDirectory(dir);
                     }
+                    await Task.Delay(1000);
                 }
             }
         }
