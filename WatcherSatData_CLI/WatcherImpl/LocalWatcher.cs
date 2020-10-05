@@ -28,17 +28,68 @@ namespace WatcherSatData_CLI.WatcherImpl
 
         public async Task<IEnumerable<DirectoryState>> GetAvailableDirectoriesStates()
         {
-            return (await GetParentDirectories()).Select(GetState);
+            return (await GetParentDirectories()).Select(GetState).Where(s => s.NumberOfChildren > 0);
+        }
+
+        public async Task<TimeSpan> GetSmallestWaitTime()
+        {
+            DateTime dt;
+            try
+            {
+                dt = (await GetAvailableDirectoriesStates())
+                    .Select(d => d.ExpirationTime)
+                    .Min();
+            }
+            catch (InvalidOperationException)
+            {
+                return TimeSpan.FromMinutes(30);
+            }
+            var now = DateTime.Now;
+            if (dt < now)
+                return TimeSpan.Zero;
+            return dt - now;
         }
 
         public DirectoryState GetState(DirectoryCleanupConfig config)
         {
             var dirInfo = new DirectoryInfo(config.FullPath);
+            bool hasFilter = !string.IsNullOrWhiteSpace(config.Filter);
+            var subDirs = hasFilter ? dirInfo.GetDirectories(config.Filter) : dirInfo.GetDirectories();
+            var files = hasFilter ? dirInfo.GetFiles(config.Filter) : dirInfo.GetFiles();
+            int count = 0;
+            bool subDirsIncluded = config.CleanupTarget == CleanupTarget.All || config.CleanupTarget == CleanupTarget.Directories;
+            bool filesIncluded = config.CleanupTarget == CleanupTarget.All || config.CleanupTarget == CleanupTarget.Files;
+            if (subDirsIncluded)
+                count += subDirs.Length;
+            if (config.CleanupTarget == CleanupTarget.All || config.CleanupTarget == CleanupTarget.Files)
+                count += files.Length;
+
+            DateTime lastWriteTime = config.LastCleanupTime ?? dirInfo.LastWriteTime;
+
+
+            if (filesIncluded)
+            {
+                foreach (var file in files)
+                {
+                    if (file.LastWriteTime < lastWriteTime)
+                        lastWriteTime = file.LastWriteTime;
+                }
+            }
+
+            if (subDirsIncluded)
+            {
+                foreach (var dir in subDirs)
+                {
+                    if (dir.LastWriteTime < lastWriteTime)
+                        lastWriteTime = dir.LastWriteTime;
+                }
+            }
+
             return new DirectoryState
             {
                 Config = config,
-                ExpirationTime = ApplyMinimumLimit(dirInfo.LastWriteTime.AddDays(config.MaxAge)),
-                NumberOfChildren = dirInfo.GetDirectories().Length
+                ExpirationTime = lastWriteTime.AddDays(config.MaxAgeCorrected),
+                NumberOfChildren = count
             };
         }
 

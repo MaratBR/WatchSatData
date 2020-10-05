@@ -115,7 +115,8 @@ namespace WatcherSatData_UI.ViewModels
 
             return config.Alias != alias?.Trim() ||
                 PathUtils.NormalizePath(config.FullPath) != PathUtils.NormalizePath(fullPath) ||
-                maxAge != config.MaxAge;
+                maxAge != config.MaxAge ||
+                filter != config.Filter;
         }
 
         private void ToggleDeletedImpl()
@@ -158,6 +159,7 @@ namespace WatcherSatData_UI.ViewModels
                 newConfig.Alias = newConfig.Alias == string.Empty ? null : newConfig.Alias;
                 newConfig.FullPath = PathUtils.NormalizePath(fullPath);
                 newConfig.MaxAge = maxAge;
+                newConfig.Filter = filter;
 
                 if (IsNew)
                 {

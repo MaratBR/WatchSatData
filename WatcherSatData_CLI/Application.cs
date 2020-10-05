@@ -134,7 +134,15 @@ namespace WatcherSatData_CLI
             try
             {
                 if (observerTask == null)
-                    mainTask.Wait();
+                    try
+                    {
+                        mainTask.Wait();
+                    }
+                    catch (Exception exc)
+                    {
+                        logger.Error($"Неожиданная ошибка: {exc}");
+                        throw exc;
+                    }
                 else
                     Task.WaitAll(mainTask, observerTask);
             }
@@ -211,6 +219,7 @@ namespace WatcherSatData_CLI
 
         private async Task StartWatcherAsync()
         {
+            bool invalidOpLastTime = false;
             IEnumerable<DirectoryState> expired;
             while (true)
             {
@@ -218,18 +227,33 @@ namespace WatcherSatData_CLI
                 {
                     expired = await watcher.GetExpiredDirectories();
                     expired = expired.ToList();
+                    invalidOpLastTime = false;
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException exc)
                 {
                     // на случай если обновление конфигурации произошло только что
                     await Task.Delay(500);
-
+                    if (invalidOpLastTime) 
+                    {
+                        logger.Error($"Не удалось записать/прочитать файл, повторная попытка через 30 сек: {exc}");
+                        await Task.Delay(30000);
+                    } 
+                    else
+                    {
+                        invalidOpLastTime = true;
+                    }
                     continue;
                 }
                 catch (PersistenceDataStoreException exc)
                 {
+                    invalidOpLastTime = false;
                     logger.Error($"Не удалось записать/прочитать файл, повторная попытка через 30 сек: {(exc.InnerException == null ? exc.Message : exc.InnerException.Message)}");
                     await Task.Delay(30000);
+                    continue;
+                }
+                catch (Exception exc)
+                {
+                    logger.Error($"Неожиданная ошибка при получении конфигурации, повторная попытка через 30 сек: {exc}");
                     continue;
                 }
 
@@ -248,10 +272,12 @@ namespace WatcherSatData_CLI
                     
                     if (nextCleanup == null)
                     {
-                        logger.Debug("Папка на удаление не найдена, повторная проверка через час или при обновлении конфигурации");
+                        var sleepTime = await watcher.GetSmallestWaitTime();
+
+                        logger.Debug($"Папка на удаление не найдена, повторная проверка через {sleepTime} или при обновлении конфигурации");
                         await Task.WhenAny(
                            WaitForConfigChange(),
-                           Task.Delay(TimeSpan.FromHours(1))
+                           Task.Delay(sleepTime)
                            );
                     }
                     else
@@ -356,11 +382,12 @@ namespace WatcherSatData_CLI
             
             try
             {
+                await Task.Delay(500);
                 Directory.SetLastWriteTime(record.Config.FullPath, DateTime.Now);
             }
-            catch (Exception)
+            catch (Exception exc)
             {
-                logger.Debug("Не удалось обновить LastWriteTime");
+                logger.Debug("Не удалось обновить LastWriteTime: " + exc.ToString());
             }
         }
 

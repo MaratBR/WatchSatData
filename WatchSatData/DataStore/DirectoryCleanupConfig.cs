@@ -22,6 +22,8 @@ namespace WatchSatData.DataStore
         [DataMember]
         public double MaxAge { get; set; }
 
+        public double MaxAgeCorrected => Math.Max(MaxAge, 1 / TimeSpan.FromDays(1).TotalMinutes);
+
         [DataMember]
         public string Alias { get; set; }
 

@@ -57,7 +57,7 @@ namespace WatcherSatData_UI
         private void InitLog()
         {
             var config = new LoggingConfiguration();
-            var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WatchSatData");
+            var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SatDataWatcher");
             Directory.CreateDirectory(root);
 
             var fileTarget = new FileTarget("logfile")
