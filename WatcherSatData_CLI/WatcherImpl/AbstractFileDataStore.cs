@@ -86,9 +86,9 @@ namespace WatcherSatData_CLI.WatcherImpl
             var lowerPath = path.ToLower();
             return (
                 from record in await GetAll()
-                let simularity = PathUtils.SimularityIndex(record.FullPath.ToLower(), lowerPath)
-                where simularity > 0
-                orderby simularity descending
+                let similarity = PathUtils.SimularityIndex(record.FullPath.ToLower(), lowerPath)
+                where similarity > 0
+                orderby similarity descending
                 select record
             ).ToList();
         }
@@ -141,7 +141,13 @@ namespace WatcherSatData_CLI.WatcherImpl
             using (var reader = new StreamReader(file))
             {
                 var dateStr = await reader.ReadToEndAsync();
-                return ConvertFromString(dateStr);
+                var data  = ConvertFromString(dateStr);
+                foreach (var config in data)
+                {
+                    config.Exists = Directory.Exists(config.FullPath);
+                }
+
+                return data;
             }
         }
 

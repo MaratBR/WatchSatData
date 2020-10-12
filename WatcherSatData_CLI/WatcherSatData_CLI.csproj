@@ -94,7 +94,6 @@
     <Compile Include="WatcherImpl\AbstractFileDataStoreOptions.cs" />
     <Compile Include="WatcherImpl\JsonDataStore.cs" />
     <Compile Include="WatcherImpl\JsonDataStoreOptions.cs" />
-    <Compile Include="WatcherImpl\LocalWatcher.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

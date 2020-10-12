@@ -69,7 +69,7 @@ namespace WatcherSatData_UI.ServicesImpl
             return TryNTimesAsync(service => service.GetDirectoryState(id));
         }
 
-        public Task<IEnumerable<DirectoryState>> GetDirectoryStates()
+        public Task<List<DirectoryState>> GetDirectoryStates()
         {
             return TryNTimesAsync(service => service.GetDirectoryStates());
         }

@@ -72,7 +72,7 @@ namespace WatchSatData
         /// </returns>
         [OperationContract]
         [FaultContract(typeof(PersistenceDataStoreException))]
-        Task<IEnumerable<DirectoryState>> GetDirectoryStates();
+        Task<List<DirectoryState>> GetDirectoryStates();
 
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
         /// <exception cref="Exceptions.DirectoryConfigNotFoundException"></exception>
@@ -84,7 +84,7 @@ namespace WatchSatData
         [FaultContract(typeof(DirectoryConfigNotFoundException))]
         Task<DirectoryState> GetDirectoryState(Guid id);
 
-        [OperationContract]
+        [OperationContract]     
         Task Ping();
     }
 

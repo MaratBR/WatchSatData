@@ -26,6 +26,7 @@ namespace WatcherSatData_CLI
     class Application
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static TimeSpan minAgeTimeSpan = TimeSpan.FromSeconds(5);
 
         static bool EnsureSingleInstance()
         {
@@ -73,7 +74,8 @@ namespace WatcherSatData_CLI
         }
 
         private Options options;
-        private LocalWatcher watcher;
+        private IDataStore ds;
+        private IService service;
         private TaskCompletionSource<object> configChangeSource;
         private ServiceHost serviceHost;
 
@@ -99,17 +101,15 @@ namespace WatcherSatData_CLI
 
             Directory.CreateDirectory(options.Root);
 
-            watcher = new LocalWatcher(
-                new JsonDataStore(
-                    Path.Combine(options.Root, options.ConfigFileName),
-                    new JsonDataStoreOptions
-                    {
-                        Pretty = options.PrettyConfig
-                    })
-                );
-            watcher.DataStore.Changed += DataStore_Changed;
+            ds = new JsonDataStore(
+                Path.Combine(options.Root, options.ConfigFileName),
+                new JsonDataStoreOptions
+                {
+                    Pretty = options.PrettyConfig
+                });
+            ds.Changed += DataStore_Changed;
 
-            var service = new Service(watcher);
+            service = new Service(ds, minAgeTimeSpan);
 
             logger.Info($"Началась новая сессия. Параметры: {string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}");
 
@@ -125,11 +125,11 @@ namespace WatcherSatData_CLI
             Console.WriteLine("---------------------------------");
             Console.WriteLine();
 
-            Task mainTask, observerTask = null;
+            Task observerTask = null;
 
             if (options.ParentPid != null)
                 observerTask = ObserveParent();
-            mainTask = StartWatcherAsync();
+            var mainTask = StartWatcherAsync();
 
             try
             {
@@ -225,7 +225,7 @@ namespace WatcherSatData_CLI
             {
                 try
                 {
-                    expired = await watcher.GetExpiredDirectories();
+                    expired = await GetExpiredDirectories();
                     expired = expired.ToList();
                     invalidOpLastTime = false;
                 }
@@ -257,27 +257,18 @@ namespace WatcherSatData_CLI
                     continue;
                 }
 
-                try
-                {
-                    await watcher.UpdateExistsValue();
-                }
-                catch(PersistenceDataStoreException exc)
-                {
-                    logger.Error($"Не удалось обновить поле Exists: {(exc.InnerException == null ? exc.Message : exc.InnerException.Message)}");
-                }
-
                 if (!expired.Any())
                 {
-                    DateTime? nextCleanup = await watcher.GetNextCleaupTime();
+                    DateTime? nextCleanup = await GetNextCleanupTimeOrNull();
                     
                     if (nextCleanup == null)
                     {
-                        var sleepTime = await watcher.GetSmallestWaitTime();
+                        var sleepTime = await GetSmallestSleepTime();
 
-                        logger.Debug($"Папка на удаление не найдена, повторная проверка через {sleepTime} или при обновлении конфигурации");
+                        logger.Debug($"Папка на удаление не найдена (вероятно конфигурация пуста), повторная проверка через {sleepTime} или при обновлении конфигурации");
                         await Task.WhenAny(
                            WaitForConfigChange(),
-                           Task.Delay(sleepTime)
+                           Task.Delay((TimeSpan)sleepTime)
                            );
                     }
                     else
@@ -297,7 +288,8 @@ namespace WatcherSatData_CLI
                 {
                     foreach (var dir in expired)
                     {
-                        logger.Info($"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок и файлов");
+                        if (dir.NumberOfChildren != 0)
+                            logger.Info($"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок  ({dir.NumberOfSubDirectories}) и файлов ({dir.NumberOfFiles})");
 
                         CleanUpDirectory(dir);
                     }
@@ -333,6 +325,26 @@ namespace WatcherSatData_CLI
                 return;
             }
 
+            var d = (DirectoryCleanupConfig)record.Config.Clone();
+            d.LastCleanupTime = DateTime.Now;
+
+            try
+            {
+                await ds.UpdateDirectory(d);
+            }
+            catch (DirectoryConfigNotFoundException)
+            {
+                logger.Error($"Не удалось обновить поле LastCleanupTime конфигурации {d.Id}, скорее всего файл конфигурации был обновлен извне, и директория {d.FullPath} удалена из конф., это не помешает работе программы.");
+            }
+            catch (PersistenceDataStoreException exc)
+            {
+                logger.Error($"Ошибка при обновлении данных: {exc}");
+            }
+
+
+            if ((files == null || !files.Any()) && (subDirs == null || !subDirs.Any()))
+                return;
+
             if (subDirs != null)
             {
                 foreach (var sub in subDirs)
@@ -362,33 +374,6 @@ namespace WatcherSatData_CLI
                     }
                 }
             }
-
-            var d = (DirectoryCleanupConfig)record.Config.Clone();
-            d.LastCleanupTime = DateTime.Now;
-
-            try
-            {
-                await watcher.DataStore.UpdateDirectory(d);
-            }
-            catch (DirectoryConfigNotFoundException)
-            {
-                logger.Error($"Не удалось обновить поле LastCleanupTime конфигурации {d.Id}, скорее всего файл конфигурации был обновлен извне, и директория {d.FullPath} удалена из конф., это не помешает работе программы.");
-            }
-            catch (PersistenceDataStoreException exc)
-            {
-                logger.Error($"Ошибка при обновлении данных: {exc}");
-            }
-
-            
-            try
-            {
-                await Task.Delay(500);
-                Directory.SetLastWriteTime(record.Config.FullPath, DateTime.Now);
-            }
-            catch (Exception exc)
-            {
-                logger.Debug("Не удалось обновить LastWriteTime: " + exc.ToString());
-            }
         }
 
         private Task WaitForConfigChange()
@@ -401,5 +386,46 @@ namespace WatcherSatData_CLI
             configChangeSource = new TaskCompletionSource<object>();
             return configChangeSource.Task;
         }
+
+        #region Helper methods
+
+        private async Task<List<DirectoryState>> GetExpiredDirectories()
+        {
+            var list = await service.GetDirectoryStates();
+            return list.Where(state => state.IsExpired).ToList();
+        }
+
+        private async Task<DateTime?> GetNextCleanupTimeOrNull()
+        {
+            var states = await service.GetDirectoryStates();
+            states = states.Where(state => state.Exists && !state.IsExpired).ToList();
+            if (!states.Any())
+                return null;
+
+            var expiration = states
+                .OrderBy(state => state.ExpirationTime)
+                .First()
+                .ExpirationTime;
+
+            return expiration;
+        }
+
+        private async Task<TimeSpan> GetSmallestSleepTime()
+        {
+            var states = await service.GetDirectoryStates();
+            states = states.Where(state => state.Exists).ToList();
+            if (!states.Any())
+                return minAgeTimeSpan;
+
+            var expiration = states
+                .OrderBy(state => state.ExpirationTime)
+                .First()
+                .ExpirationTime;
+
+            var ts = DateTime.Now - (DateTime)expiration;
+            return ts < minAgeTimeSpan ? minAgeTimeSpan : ts;
+        }
+
+        #endregion
     }
 }
