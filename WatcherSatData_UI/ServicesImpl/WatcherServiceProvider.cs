@@ -114,8 +114,14 @@ namespace WatcherSatData_UI.ServicesImpl
                 FileName = exe,
                 Arguments = $"--parent-pid {parent.Id}",
                 CreateNoWindow = true,
-                UseShellExecute = false
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Hidden
             });
+            embedServiceSupervisor.StateChanged += (sender, args) =>
+            {
+                if (args.IsRejectedByUser)
+                    StateChanged?.Invoke(this, new ServiceStateChangedEventArgs(false));
+            };
             embedServiceSupervisor.Start();
         }
 

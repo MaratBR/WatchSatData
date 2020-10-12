@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
 using NLog;
@@ -93,7 +94,17 @@ namespace WatcherSatData_UI.Utils.Proc
         {
             logger.Debug($"Запуск дочернего процесса {_info.FileName} ...");
 
-            Process = Process.Start(_info);
+            try
+            {
+                Process = Process.Start(_info);
+            }
+            catch (Win32Exception e)
+            {
+                if (e.NativeErrorCode == 1223)
+                    StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs { IsRejectedByUser = true });
+                logger.Error(e.ToString());
+                return;
+            }
             if (processId == null)
             {
                 processId = Process.Id;

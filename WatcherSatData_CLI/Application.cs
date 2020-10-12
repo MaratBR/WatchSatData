@@ -20,10 +20,10 @@ namespace WatcherSatData_CLI
 {
     internal class Application
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private static readonly TimeSpan minAgeTimeSpan = TimeSpan.FromSeconds(5);
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly TimeSpan MinAgeTimeSpan = TimeSpan.FromSeconds(5);
 
-        private static readonly string AppId = "birdsWatcher_30c58e1c-300d-4dfb-ae9b-01da83d5c7d6";
+        private const string AppId = "birdsWatcher_30c58e1c-300d-4dfb-ae9b-01da83d5c7d6";
         private TaskCompletionSource<object> configChangeSource;
         private IDataStore ds;
 
@@ -74,9 +74,9 @@ namespace WatcherSatData_CLI
                 });
             ds.Changed += DataStore_Changed;
 
-            service = new Service(ds, minAgeTimeSpan);
+            service = new Service(ds, MinAgeTimeSpan);
 
-            logger.Info(
+            Logger.Info(
                 $"Началась новая сессия. Параметры: {string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}");
 
             if (!options.NoService)
@@ -84,7 +84,7 @@ namespace WatcherSatData_CLI
                 serviceHost = new ServiceHost(service, new Uri($"net.pipe://localhost/{AppId}"));
                 serviceHost.AddServiceEndpoint(typeof(IService), new NetNamedPipeBinding(), "v1");
                 serviceHost.Open();
-                logger.Info("Сервис запущен");
+                Logger.Info("Сервис запущен");
             }
 
             Console.WriteLine("Нажмите Ctrl-C чтобы завершить работу");
@@ -106,7 +106,7 @@ namespace WatcherSatData_CLI
                     }
                     catch (Exception exc)
                     {
-                        logger.Error($"Неожиданная ошибка: {exc}");
+                        Logger.Error($"Неожиданная ошибка: {exc}");
                         throw exc;
                     }
                 else
@@ -137,7 +137,7 @@ namespace WatcherSatData_CLI
                 }
                 catch (ArgumentException)
                 {
-                    logger.Debug("Процесс родитель мёртв, завершаю работу");
+                    Logger.Debug("Процесс родитель мёртв, завершаю работу");
                     Environment.Exit(0);
                     return;
                 }
@@ -201,7 +201,7 @@ namespace WatcherSatData_CLI
                     await Task.Delay(500);
                     if (invalidOpLastTime)
                     {
-                        logger.Error($"Не удалось записать/прочитать файл, повторная попытка через 30 сек: {exc}");
+                        Logger.Error($"Не удалось записать/прочитать файл, повторная попытка через 30 сек: {exc}");
                         await Task.Delay(30000);
                     }
                     else
@@ -214,14 +214,14 @@ namespace WatcherSatData_CLI
                 catch (PersistenceDataStoreException exc)
                 {
                     invalidOpLastTime = false;
-                    logger.Error(
+                    Logger.Error(
                         $"Не удалось записать/прочитать файл, повторная попытка через 30 сек: {(exc.InnerException == null ? exc.Message : exc.InnerException.Message)}");
                     await Task.Delay(30000);
                     continue;
                 }
                 catch (Exception exc)
                 {
-                    logger.Error(
+                    Logger.Error(
                         $"Неожиданная ошибка при получении конфигурации, повторная попытка через 30 сек: {exc}");
                     continue;
                 }
@@ -234,7 +234,7 @@ namespace WatcherSatData_CLI
                     {
                         var sleepTime = await GetSmallestSleepTime();
 
-                        logger.Debug(
+                        Logger.Debug(
                             $"Папка на удаление не найдена (вероятно конфигурация пуста), повторная проверка через {sleepTime} или при обновлении конфигурации");
                         await Task.WhenAny(
                             WaitForConfigChange(),
@@ -243,7 +243,7 @@ namespace WatcherSatData_CLI
                     }
                     else
                     {
-                        logger.Debug($"Следующая очистка - {nextCleanup}");
+                        Logger.Debug($"Следующая очистка - {nextCleanup}");
                         var delayMs = Math.Min(
                             Math.Max(1, ((DateTime) nextCleanup - DateTime.Now).TotalMilliseconds),
                             int.MaxValue
@@ -259,7 +259,7 @@ namespace WatcherSatData_CLI
                     foreach (var dir in expired)
                     {
                         if (dir.NumberOfChildren != 0)
-                            logger.Info(
+                            Logger.Info(
                                 $"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок  ({dir.NumberOfSubDirectories}) и файлов ({dir.NumberOfFiles})");
 
                         CleanUpDirectory(dir);
@@ -291,7 +291,7 @@ namespace WatcherSatData_CLI
             }
             catch
             {
-                logger.Debug($"Не удалось получить список подпапок/файлов {record.Config.FullPath}");
+                Logger.Debug($"Не удалось получить список подпапок/файлов {record.Config.FullPath}");
                 return;
             }
 
@@ -304,12 +304,12 @@ namespace WatcherSatData_CLI
             }
             catch (DirectoryConfigNotFoundException)
             {
-                logger.Error(
+                Logger.Error(
                     $"Не удалось обновить поле LastCleanupTime конфигурации {d.Id}, скорее всего файл конфигурации был обновлен извне, и директория {d.FullPath} удалена из конф., это не помешает работе программы.");
             }
             catch (PersistenceDataStoreException exc)
             {
-                logger.Error($"Ошибка при обновлении данных: {exc}");
+                Logger.Error($"Ошибка при обновлении данных: {exc}");
             }
 
 
@@ -324,7 +324,7 @@ namespace WatcherSatData_CLI
                     }
                     catch (Exception exc)
                     {
-                        logger.Error($"Не удалось удалить папку {sub}: {exc.Message}");
+                        Logger.Error($"Не удалось удалить папку {sub}: {exc.Message}");
                     }
 
             if (files != null)
@@ -335,7 +335,7 @@ namespace WatcherSatData_CLI
                     }
                     catch (Exception exc)
                     {
-                        logger.Error($"Не удалось удалить файл {file}: {exc.Message}");
+                        Logger.Error($"Не удалось удалить файл {file}: {exc.Message}");
                     }
         }
 
@@ -406,7 +406,7 @@ namespace WatcherSatData_CLI
             var states = await service.GetDirectoryStates();
             states = states.Where(state => state.Exists).ToList();
             if (!states.Any())
-                return minAgeTimeSpan;
+                return MinAgeTimeSpan;
 
             var expiration = states
                 .OrderBy(state => state.ExpirationTime)
@@ -414,7 +414,7 @@ namespace WatcherSatData_CLI
                 .ExpirationTime;
 
             var ts = DateTime.Now - (DateTime) expiration;
-            return ts < minAgeTimeSpan ? minAgeTimeSpan : ts;
+            return ts < MinAgeTimeSpan ? MinAgeTimeSpan : ts;
         }
 
         #endregion
