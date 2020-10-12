@@ -53,7 +53,8 @@ namespace WatchSatData.DataStore
             Exists = Exists,
             Filter = Filter,
             LastCleanupTime = LastCleanupTime,
-            Id = Id
+            Id = Id,
+            CleanupTarget = CleanupTarget
         };
     }
 }

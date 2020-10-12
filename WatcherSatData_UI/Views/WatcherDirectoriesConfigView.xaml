@@ -134,7 +134,7 @@
                 <DataGridTextColumn Header="Последняя очистка" Binding="{Binding LastCleanup}" IsReadOnly="True" />
                 <DataGridComboBoxColumn Header="Цель" 
                                         ItemsSource="{Binding Source={StaticResource cleanupTargetEnum}}" 
-SelectedItemBinding="{Binding Target}" />
+                                        SelectedItemBinding="{Binding Target, Mode=TwoWay}" />
                 <DataGridTextColumn Header="Фильтр" Binding="{Binding Filter}" />
                 <DataGridCheckBoxColumn IsReadOnly="True" Header="Существует" Binding="{Binding Exists, Mode=OneWay}" />
 

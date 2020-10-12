@@ -114,8 +114,9 @@ namespace WatcherSatData_UI.ViewModels
                 return true;
 
             return config.Alias != alias?.Trim() ||
+                config.CleanupTarget != target ||
                 PathUtils.NormalizePath(config.FullPath) != PathUtils.NormalizePath(fullPath) ||
-                maxAge != config.MaxAge ||
+                Math.Abs(maxAge - config.MaxAge) > 1e-5 ||
                 filter != config.Filter;
         }
 
