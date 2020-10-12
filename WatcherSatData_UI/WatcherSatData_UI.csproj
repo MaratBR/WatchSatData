@@ -199,7 +199,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /Y $(SolutionDir)WatcherSatData_CLI\bin\$(Configuration)\WatcherSatData_CLI.exe $(SolutionDir)WatcherSatData_UI\bin\$(Configuration)\satWatcher.exe</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(SolutionDir)WatcherSatData_CLI\bin\$(Configuration)\WatcherSatData_CLI.exe" "$(SolutionDir)WatcherSatData_UI\bin\$(Configuration)\satWatcher.exe"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>
