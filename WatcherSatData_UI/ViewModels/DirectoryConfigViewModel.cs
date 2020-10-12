@@ -160,6 +160,7 @@ namespace WatcherSatData_UI.ViewModels
                 newConfig.FullPath = PathUtils.NormalizePath(fullPath);
                 newConfig.MaxAge = maxAge;
                 newConfig.Filter = filter;
+                newConfig.CleanupTarget = target;
 
                 if (IsNew)
                 {

@@ -266,7 +266,7 @@ namespace WatcherSatData_CLI
                     logger.Error($"Не удалось обновить поле Exists: {(exc.InnerException == null ? exc.Message : exc.InnerException.Message)}");
                 }
 
-                if (expired.Count() == 0)
+                if (!expired.Any())
                 {
                     DateTime? nextCleanup = await watcher.GetNextCleaupTime();
                     
@@ -297,7 +297,7 @@ namespace WatcherSatData_CLI
                 {
                     foreach (var dir in expired)
                     {
-                        logger.Info($"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок");
+                        logger.Info($"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок и файлов");
 
                         CleanUpDirectory(dir);
                     }
