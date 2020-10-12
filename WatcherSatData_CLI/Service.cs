@@ -3,17 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.ServiceModel;
-using System.Text;
 using System.Threading.Tasks;
-using WatcherSatData_CLI.WatcherImpl;
 using WatchSatData;
 using WatchSatData.DataStore;
-using WatchSatData.Exceptions;
 
 namespace WatcherSatData_CLI
 {
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single)]
-    class Service : IService
+    internal class Service : IService
     {
         private readonly IDataStore ds;
         private readonly TimeSpan minAge;
@@ -23,49 +20,6 @@ namespace WatcherSatData_CLI
             ds = dataStore;
             this.minAge = minAge;
         }
-
-        #region IService implementation 
-
-        public Task CreateDirectory(DirectoryCleanupConfig record)
-        {
-            return ds.CreateDirectory(record);
-        }
-
-        public Task DeleteDirectory(Guid id)
-        {
-            return ds.DeleteDirectory(id);
-        }
-
-        public Task<IEnumerable<DirectoryCleanupConfig>> FindDirectoriesByPath(string path)
-        {
-            return ds.FindByPath(path);
-        }
-
-        public Task<IEnumerable<DirectoryCleanupConfig>> GetAllDirectories()
-        {
-            return ds.GetAll();
-        }
-
-        public async Task<DirectoryState> GetDirectoryState(Guid id)
-        {
-            return GetState(await ds.GetById(id));
-        }
-
-        public async Task<List<DirectoryState>> GetDirectoryStates()
-        {
-            return (await GetAllDirectories())
-                .Select(GetState)
-                .ToList();
-        }
-
-        public Task UpdateDirectory(DirectoryCleanupConfig record)
-        {
-            return ds.UpdateDirectory(record);
-        }
-
-        public Task Ping() => Task.CompletedTask;
-
-        #endregion
 
         private DirectoryState GetState(DirectoryCleanupConfig config)
         {
@@ -125,7 +79,9 @@ namespace WatcherSatData_CLI
 
                 if (includeSubDirectories)
                 {
-                    var subDirs = hasFilter ? directoryInfo.GetDirectories(config.Filter) : directoryInfo.GetDirectories();
+                    var subDirs = hasFilter
+                        ? directoryInfo.GetDirectories(config.Filter)
+                        : directoryInfo.GetDirectories();
                     state.NumberOfSubDirectories = subDirs.Length;
                 }
 
@@ -134,5 +90,51 @@ namespace WatcherSatData_CLI
 
             return state;
         }
+
+        #region IService implementation
+
+        public Task CreateDirectory(DirectoryCleanupConfig record)
+        {
+            return ds.CreateDirectory(record);
+        }
+
+        public Task DeleteDirectory(Guid id)
+        {
+            return ds.DeleteDirectory(id);
+        }
+
+        public Task<IEnumerable<DirectoryCleanupConfig>> FindDirectoriesByPath(string path)
+        {
+            return ds.FindByPath(path);
+        }
+
+        public Task<IEnumerable<DirectoryCleanupConfig>> GetAllDirectories()
+        {
+            return ds.GetAll();
+        }
+
+        public async Task<DirectoryState> GetDirectoryState(Guid id)
+        {
+            return GetState(await ds.GetById(id));
+        }
+
+        public async Task<List<DirectoryState>> GetDirectoryStates()
+        {
+            return (await GetAllDirectories())
+                .Select(GetState)
+                .ToList();
+        }
+
+        public Task UpdateDirectory(DirectoryCleanupConfig record)
+        {
+            return ds.UpdateDirectory(record);
+        }
+
+        public Task Ping()
+        {
+            return Task.CompletedTask;
+        }
+
+        #endregion
     }
 }

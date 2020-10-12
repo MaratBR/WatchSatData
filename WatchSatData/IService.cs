@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.ServiceModel;
-using System.Text;
 using System.Threading.Tasks;
 using WatchSatData.DataStore;
 using WatchSatData.Exceptions;
@@ -14,7 +11,7 @@ namespace WatchSatData
     public interface IService
     {
         /// <summary>
-        /// Возвращает список конфигураций для директорий
+        ///     Возвращает список конфигураций для директорий
         /// </summary>
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
         /// <returns>Список директорий</returns>
@@ -24,7 +21,7 @@ namespace WatchSatData
 
 
         /// <summary>
-        /// Возвращает список конфигураций для директорий с похожим путём
+        ///     Возвращает список конфигураций для директорий с похожим путём
         /// </summary>
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
         /// <returns>Список директорий</returns>
@@ -34,7 +31,7 @@ namespace WatchSatData
 
 
         /// <summary>
-        /// Удаляет конфигурацию
+        ///     Удаляет конфигурацию
         /// </summary>
         /// <param name="id">ID конфигурации</param>
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
@@ -45,7 +42,7 @@ namespace WatchSatData
         Task DeleteDirectory(Guid id);
 
         /// <summary>
-        /// Обновляет конфигурацию
+        ///     Обновляет конфигурацию
         /// </summary>
         /// <param name="record">Конфигурация, ID должен бытть указан</param>
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
@@ -57,7 +54,7 @@ namespace WatchSatData
         Task UpdateDirectory(DirectoryCleanupConfig record);
 
         /// <summary>
-        /// Создаёт конфигурацию директории
+        ///     Создаёт конфигурацию директории
         /// </summary>
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
         /// <exception cref="Exceptions.DirectoryConfigNotFoundException"></exception>
@@ -68,7 +65,7 @@ namespace WatchSatData
 
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
         /// <returns>
-        /// Список объектов, описывающих состояние директорий и их конфигурацию
+        ///     Список объектов, описывающих состояние директорий и их конфигурацию
         /// </returns>
         [OperationContract]
         [FaultContract(typeof(PersistenceDataStoreException))]
@@ -77,14 +74,14 @@ namespace WatchSatData
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
         /// <exception cref="Exceptions.DirectoryConfigNotFoundException"></exception>
         /// <returns>
-        /// Объект, описывающий состояние директории и её конфигурацию
+        ///     Объект, описывающий состояние директории и её конфигурацию
         /// </returns>
         [OperationContract]
         [FaultContract(typeof(PersistenceDataStoreException))]
         [FaultContract(typeof(DirectoryConfigNotFoundException))]
         Task<DirectoryState> GetDirectoryState(Guid id);
 
-        [OperationContract]     
+        [OperationContract]
         Task Ping();
     }
 

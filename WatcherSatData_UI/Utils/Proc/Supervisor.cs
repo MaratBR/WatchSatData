@@ -1,44 +1,51 @@
-﻿using NLog;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Web;
+using NLog;
 
 namespace WatcherSatData_UI.Utils.Proc
 {
-    class Supervisor : IDisposable
+    internal class Supervisor : IDisposable
     {
-        public event EventHandler<SupervisorStateChangedEventArgs> StateChanged;
-        public Process Process { get; private set; }
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        private ProcessStartInfo _info;
+        private readonly ProcessStartInfo _info;
+        private readonly Job job = new Job();
         private Thread observerThread;
         private int? processId;
-        private Job job = new Job();
 
         public Supervisor(ProcessStartInfo info)
         {
             _info = info;
         }
 
+        public Process Process { get; private set; }
+
+        public void Dispose()
+        {
+            if (Process != null)
+            {
+                UnsubscribeFromEvents();
+                if (!Process.HasExited)
+                    Process.Kill();
+                Process.Dispose();
+            }
+        }
+
+        public event EventHandler<SupervisorStateChangedEventArgs> StateChanged;
+
         private void StartObserver()
         {
             logger.Debug("Запускаю поток-наблюдатель...");
-            observerThread = new Thread((object s) => ObserveProcess((SynchronizationContext)s))
+            observerThread = new Thread(s => ObserveProcess((SynchronizationContext) s))
             {
                 Name = "ProcessObserver",
-                IsBackground = true,
+                IsBackground = true
             };
             observerThread.Start(SynchronizationContext.Current);
             if (processId != null)
             {
-                var proc = Process.GetProcessById((int)processId);
+                var proc = Process.GetProcessById((int) processId);
                 job.AddProcess(proc.Handle);
             }
         }
@@ -50,24 +57,22 @@ namespace WatcherSatData_UI.Utils.Proc
             {
                 try
                 {
-                    Process.GetProcessById((int)processId);
+                    Process.GetProcessById((int) processId);
                 }
-                catch(ArgumentException)
+                catch (ArgumentException)
                 {
                     logger.Debug($"Процесс PID={processId} умер, перезапуск ...");
                     context.Post(_s =>
                     {
                         if (Process == null || !Process.HasExited)
-                        {
                             // примечание: если условие выше не выполнятеся это означает, что дочерний процесс
                             // либо завершился по нормальному (а значит событие StateChanged было вызвано в Process_Exited), 
                             // либо что произошла какая-то дичь (скорее первое)
-                            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs { IsAlive = false });
-
-                        }
+                            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs {IsAlive = false});
                         Restart();
                     }, null);
                 }
+
                 Thread.Sleep(10000);
             }
         }
@@ -80,6 +85,7 @@ namespace WatcherSatData_UI.Utils.Proc
                     Process.Kill();
                 Process = null;
             }
+
             Start();
         }
 
@@ -99,13 +105,14 @@ namespace WatcherSatData_UI.Utils.Proc
             }
 
             SubscribeToEvents();
-            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs { IsAlive = true });
+            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs {IsAlive = true});
         }
 
         private void SubscribeToEvents()
         {
             Process.Exited += Process_Exited;
         }
+
         private void UnsubscribeFromEvents()
         {
             Process.Exited -= Process_Exited;
@@ -113,19 +120,8 @@ namespace WatcherSatData_UI.Utils.Proc
 
         private void Process_Exited(object sender, EventArgs e)
         {
-            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs { IsAlive = false });
+            StateChanged?.Invoke(this, new SupervisorStateChangedEventArgs {IsAlive = false});
             UnsubscribeFromEvents();
-        }
-
-        public void Dispose()
-        {
-            if (Process != null)
-            {
-                UnsubscribeFromEvents();
-                if (!Process.HasExited)
-                    Process.Kill();
-                Process.Dispose();
-            }
         }
     }
 }

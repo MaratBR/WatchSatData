@@ -5,13 +5,10 @@ namespace WatchSatData.DataStore
     [DataContract]
     public enum CleanupTarget
     {
-        [EnumMember]
-        All,
+        [EnumMember] All,
 
-        [EnumMember]
-        Files,
+        [EnumMember] Files,
 
-        [EnumMember]
-        Directories
+        [EnumMember] Directories
     }
 }

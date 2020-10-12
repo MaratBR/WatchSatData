@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WatchSatData.DataStore
 {
@@ -36,8 +33,8 @@ namespace WatchSatData.DataStore
             try
             {
                 return Path.GetFullPath(new Uri(path).LocalPath)
-                   .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                   .ToLowerInvariant();
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    .ToLowerInvariant();
             }
             catch
             {

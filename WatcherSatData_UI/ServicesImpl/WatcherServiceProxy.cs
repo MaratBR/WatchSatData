@@ -1,25 +1,22 @@
-﻿using NLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.ServiceModel;
-using System.Text;
 using System.Threading.Tasks;
+using NLog;
 using WatcherSatData_UI.Services;
 using WatchSatData;
 using WatchSatData.DataStore;
 
 namespace WatcherSatData_UI.ServicesImpl
 {
-    class WatcherServiceProxy : IService
+    internal class WatcherServiceProxy : IService
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private bool available;
         private IService inner;
-        private WatcherServiceProvider provider;
-        private int retriesCount;
-        private bool available = false;
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly WatcherServiceProvider provider;
+        private readonly int retriesCount;
 
-        public event EventHandler<ServiceStateChangedEventArgs> StateChanged;
         public WatcherServiceProxy(WatcherServiceProvider provider, int retriesCount)
         {
             this.retriesCount = retriesCount;
@@ -29,19 +26,6 @@ namespace WatcherSatData_UI.ServicesImpl
         public Task Ping()
         {
             return TryNTimesAsync(service => service.Ping());
-        }
-
-        private IService GetService()
-        {
-            if (inner == null)
-            {
-                return TryNTimes(() =>
-                {
-                    inner = provider.InstantiateService();
-                    return inner;
-                });
-            }
-            return inner;
         }
 
         public Task CreateDirectory(DirectoryCleanupConfig record)
@@ -79,12 +63,24 @@ namespace WatcherSatData_UI.ServicesImpl
             return TryNTimesAsync(service => service.UpdateDirectory(record));
         }
 
+        public event EventHandler<ServiceStateChangedEventArgs> StateChanged;
+
+        private IService GetService()
+        {
+            if (inner == null)
+                return TryNTimes(() =>
+                {
+                    inner = provider.InstantiateService();
+                    return inner;
+                });
+            return inner;
+        }
+
         public async Task<T> TryNTimesAsync<T>(Func<IService, Task<T>> func)
         {
             Exception exc = null;
-            IService service = GetService();
+            var service = GetService();
             for (var i = 0; i < retriesCount; i++)
-            {
                 try
                 {
                     var value = await func(service);
@@ -98,13 +94,10 @@ namespace WatcherSatData_UI.ServicesImpl
                 }
                 catch (Exception _exc)
                 {
-                    if (_exc is CommunicationObjectFaultedException)
-                    {
-                        service = await Reconnect();
-                    }
+                    if (_exc is CommunicationObjectFaultedException) service = await Reconnect();
                     exc = _exc;
                 }
-            }
+
             inner = null;
             logger.Debug($"Не удалось выполнить операцию за {retriesCount} попыток");
             throw new ServiceFaultException("Произшла ошибка на стороне сервера", exc);
@@ -113,9 +106,8 @@ namespace WatcherSatData_UI.ServicesImpl
         public async Task TryNTimesAsync(Func<IService, Task> func)
         {
             Exception exc = null;
-            IService service = GetService();
+            var service = GetService();
             for (var i = 0; i < retriesCount; i++)
-            {
                 try
                 {
                     await func(service);
@@ -129,13 +121,10 @@ namespace WatcherSatData_UI.ServicesImpl
                 }
                 catch (Exception _exc)
                 {
-                    if (_exc is CommunicationObjectFaultedException)
-                    {
-                        service = await Reconnect();
-                    }
+                    if (_exc is CommunicationObjectFaultedException) service = await Reconnect();
                     exc = _exc;
                 }
-            }
+
             inner = null;
             logger.Debug($"Не удалось выполнить операцию за {retriesCount} попыток");
             throw new ServiceFaultException("Произшла ошибка на стороне сервера", exc);
@@ -161,7 +150,6 @@ namespace WatcherSatData_UI.ServicesImpl
         {
             Exception exc = null;
             for (var i = 0; i < retriesCount; i++)
-            {
                 try
                 {
                     return func();
@@ -170,7 +158,6 @@ namespace WatcherSatData_UI.ServicesImpl
                 {
                     exc = _exc;
                 }
-            }
 
             throw exc;
         }

@@ -1,19 +1,22 @@
-﻿
-using Prism.Commands;
-using Prism.Regions;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
+﻿using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Prism.Commands;
+using Prism.Regions;
 
 namespace WatcherSatData_UI.ViewModels
 {
     public abstract class LoadingDataViewModel<TData> : ViewModelBase, INavigationAware
     {
         private TData data;
+
+        private bool isLoading;
+        private Exception lastException;
+
+        public LoadingDataViewModel()
+        {
+            Refresh = new DelegateCommand(async () => await RefreshData(), CanRefresh);
+        }
 
         public TData Data
         {
@@ -23,21 +26,38 @@ namespace WatcherSatData_UI.ViewModels
 
         public ICommand Refresh { get; }
 
-        private bool isLoading;
-        private Exception lastException;
-
-        public bool IsLoading { get => isLoading; private set => Set(ref isLoading, value); }
-
-        public Exception LastException { get => lastException; private set => Set(ref lastException, value); }
-
-        public LoadingDataViewModel()
+        public bool IsLoading
         {
-            Refresh = new DelegateCommand(async () => await RefreshData(), CanRefresh);
+            get => isLoading;
+            private set => Set(ref isLoading, value);
+        }
+
+        public Exception LastException
+        {
+            get => lastException;
+            private set => Set(ref lastException, value);
+        }
+
+        public async void OnNavigatedTo(NavigationContext navigationContext)
+        {
+            await RefreshData();
+        }
+
+        public bool IsNavigationTarget(NavigationContext navigationContext)
+        {
+            return false;
+        }
+
+        public void OnNavigatedFrom(NavigationContext navigationContext)
+        {
         }
 
         protected abstract Task<TData> LoadData();
 
-        protected bool CanRefresh() => true;
+        protected bool CanRefresh()
+        {
+            return true;
+        }
 
         public async Task RefreshData()
         {
@@ -57,14 +77,5 @@ namespace WatcherSatData_UI.ViewModels
                 IsLoading = false;
             }
         }
-
-        public async void OnNavigatedTo(NavigationContext navigationContext)
-        {
-            await RefreshData();
-        }
-
-        public bool IsNavigationTarget(NavigationContext navigationContext) => false;
-
-        public void OnNavigatedFrom(NavigationContext navigationContext) {}
     }
 }

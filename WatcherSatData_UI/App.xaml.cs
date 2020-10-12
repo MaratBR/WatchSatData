@@ -1,37 +1,20 @@
-﻿using CommonServiceLocator;
+﻿using System;
+using System.IO;
+using System.Text;
+using System.Windows;
 using NLog;
 using NLog.Config;
 using NLog.Layouts;
 using NLog.Targets;
-using Prism;
 using Prism.Ioc;
 using Prism.Modularity;
 using Prism.Regions;
-using Prism.Unity;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.IO;
-using System.Linq;
-using System.ServiceModel;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using Unity;
-using Unity.Lifetime;
 using WatcherSatData_UI.Services;
-using WatcherSatData_UI.ServicesImpl;
-using WatchSatData;
-
 
 namespace WatcherSatData_UI
 {
     /// <summary>
-    /// Interaction logic for App.xaml
+    ///     Interaction logic for App.xaml
     /// </summary>
     public partial class App
     {
@@ -57,7 +40,8 @@ namespace WatcherSatData_UI
         private void InitLog()
         {
             var config = new LoggingConfiguration();
-            var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SatDataWatcher");
+            var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SatDataWatcher");
             Directory.CreateDirectory(root);
 
             var fileTarget = new FileTarget("logfile")
@@ -66,7 +50,8 @@ namespace WatcherSatData_UI
                 FileName = Path.Combine(root, "ui.log"),
                 Encoding = Encoding.UTF8
             };
-            fileTarget.Layout = new SimpleLayout("${longdate}|${level:uppercase=true}|${logger}|Thread-${threadid}|${message}");
+            fileTarget.Layout =
+                new SimpleLayout("${longdate}|${level:uppercase=true}|${logger}|Thread-${threadid}|${message}");
 
             config.AddTarget(fileTarget);
             config.AddRule(LogLevel.Trace, LogLevel.Off, fileTarget);

@@ -1,17 +1,13 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 using WatchSatData.DataStore;
 
 namespace WatcherSatData_CLI.WatcherImpl
 {
     public class JsonDataStore : AbstractFileDataStore
     {
-        private JsonDataStoreOptions options;
+        private readonly JsonDataStoreOptions options;
+
         public JsonDataStore(string filePath, JsonDataStoreOptions options) : base(filePath, options)
         {
             this.options = options;

@@ -1,38 +1,29 @@
-﻿using NLog;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using System.Reflection;
 using System.ServiceModel;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
-using WatcherSatData_UI.Exceptions;
+using NLog;
 using WatcherSatData_UI.Services;
 using WatcherSatData_UI.Utils.Proc;
 using WatchSatData;
 
 namespace WatcherSatData_UI.ServicesImpl
 {
-    class WatcherServiceProvider : IWatcherServiceProvider
+    internal class WatcherServiceProvider : IWatcherServiceProvider
     {
-        public event EventHandler<ServiceStateChangedEventArgs> StateChanged;
-
-        private static string[] ServiceExe = { "satWatcher.exe", "WatcherSatData_CLI.exe" };
+        private static readonly string[] ServiceExe = {"satWatcher.exe", "WatcherSatData_CLI.exe"};
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private Supervisor embedServiceSupervisor;
+        private bool isDisposed;
+        private bool isInitialized;
+        private ServiceState lastState = ServiceState.Default;
+        private Task pinger;
 
         private WatcherServiceProxy service;
-        private Supervisor embedServiceSupervisor;
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private Task pinger;
-        private bool isInitialized = false;
-        private bool isDisposed = false;
-        private ServiceState lastState = ServiceState.Default;
 
-        public WatcherServiceProvider()
-        {
-        }
+        public event EventHandler<ServiceStateChangedEventArgs> StateChanged;
 
         public IService GetService()
         {
@@ -60,6 +51,24 @@ namespace WatcherSatData_UI.ServicesImpl
             {
                 logger.Debug("Сервис запущен внешне");
             }
+        }
+
+        public bool IsEmbed()
+        {
+            return embedServiceSupervisor != null;
+        }
+
+        public ServiceState GetLastState()
+        {
+            return lastState;
+        }
+
+        public void Dispose()
+        {
+            if (isDisposed)
+                return;
+            isDisposed = true;
+            embedServiceSupervisor?.Dispose();
         }
 
         private void InitService()
@@ -118,6 +127,7 @@ namespace WatcherSatData_UI.ServicesImpl
                 if (fullPath != null)
                     return fullPath;
             }
+
             return null;
         }
 
@@ -158,11 +168,12 @@ namespace WatcherSatData_UI.ServicesImpl
         {
             try
             {
-                var binding = new NetNamedPipeBinding()
+                var binding = new NetNamedPipeBinding
                 {
-                    Security = new NetNamedPipeSecurity { Mode = NetNamedPipeSecurityMode.Transport }
+                    Security = new NetNamedPipeSecurity {Mode = NetNamedPipeSecurityMode.Transport}
                 };
-                EndpointAddress endpoint = new EndpointAddress("net.pipe://localhost/birdsWatcher_30c58e1c-300d-4dfb-ae9b-01da83d5c7d6/v1");
+                var endpoint =
+                    new EndpointAddress("net.pipe://localhost/birdsWatcher_30c58e1c-300d-4dfb-ae9b-01da83d5c7d6/v1");
                 var channelFactory = new ChannelFactory<IService>(binding, endpoint);
                 return channelFactory.CreateChannel();
             }
@@ -171,13 +182,6 @@ namespace WatcherSatData_UI.ServicesImpl
                 return null;
             }
         }
-
-        public bool IsEmbed()
-        {
-            return embedServiceSupervisor != null;
-        }
-
-        public ServiceState GetLastState() => lastState;
 
         public static string GetFullPathOrNull(string fileName)
         {
@@ -192,20 +196,12 @@ namespace WatcherSatData_UI.ServicesImpl
                     return fullPath;
             }
 
-            var root = Directory.GetParent(System.Reflection.Assembly.GetEntryAssembly().Location).FullName;
+            var root = Directory.GetParent(Assembly.GetEntryAssembly().Location).FullName;
             var exe = Path.Combine(root, fileName);
             if (File.Exists(exe))
                 return exe;
 
             return null;
-        }
-
-        public void Dispose()
-        {
-            if (isDisposed)
-                return;
-            isDisposed = true;
-            embedServiceSupervisor?.Dispose();
         }
     }
 }

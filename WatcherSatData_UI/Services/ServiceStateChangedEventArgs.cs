@@ -4,7 +4,6 @@ namespace WatcherSatData_UI.Services
 {
     public class ServiceStateChangedEventArgs : EventArgs
     {
-
         public ServiceStateChangedEventArgs(bool available)
         {
             State = available ? ServiceState.Online : ServiceState.Offline;

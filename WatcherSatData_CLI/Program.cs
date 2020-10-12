@@ -1,27 +1,18 @@
-﻿using CommandLine;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System;
 using System.Text;
-using System.Threading.Tasks;
+using CommandLine;
 using static WatcherSatData_CLI.Application;
 
 namespace WatcherSatData_CLI
 {
-    class Program
+    internal class Program
     {
-
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             var application = new Application();
             Parser.Default.ParseArguments<Options>(args)
-                   .WithParsed(o =>
-                   {
-                       Environment.Exit(application.Run(o));
-                   });
-
+                .WithParsed(o => { Environment.Exit(application.Run(o)); });
         }
     }
 }

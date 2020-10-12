@@ -1,20 +1,15 @@
 ﻿using Prism.Ioc;
 using Prism.Modularity;
 using Prism.Regions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WatcherSatData_UI.Services;
 using WatcherSatData_UI.ServicesImpl;
 using WatcherSatData_UI.Views;
 
 namespace WatcherSatData_UI
 {
-    class MainModule : IModule
+    internal class MainModule : IModule
     {
-        private IRegionManager _regionManager;
+        private readonly IRegionManager _regionManager;
 
         public MainModule(IRegionManager regionManager)
         {

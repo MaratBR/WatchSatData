@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace WatchSatData.DataStore
 {
     public interface IDataStore
     {
+        string Location { get; }
+
         /// <summary>
-        /// Удаляет конфигурацию у казанный ID
+        ///     Удаляет конфигурацию у казанный ID
         /// </summary>
         /// <param name="id">Идентификатор конфигурации</param>
         /// <exception cref="Exceptions.DirectoryConfigNotFoundException"></exception>
@@ -18,7 +18,7 @@ namespace WatchSatData.DataStore
 
 
         /// <summary>
-        /// Создаёт запись в конфигурации
+        ///     Создаёт запись в конфигурации
         /// </summary>
         /// <param name="directory">Конфигурация</param>
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
@@ -44,8 +44,6 @@ namespace WatchSatData.DataStore
         /// <exception cref="Exceptions.PersistenceDataStoreException"></exception>
         /// <returns>Список конфигураций директорий</returns>
         Task<IEnumerable<DirectoryCleanupConfig>> GetAll();
-
-        string Location { get; }
 
         event EventHandler Changed;
     }
