@@ -64,7 +64,7 @@ namespace WatcherSatData_CLI
                 var expiration = lastCleanupTime.AddDays(correctedMaxAgeInDays);
                 state.ExpirationTime = expiration;
 
-                var hasFilter = !string.IsNullOrWhiteSpace(config.FullPath);
+                var hasFilter = !string.IsNullOrWhiteSpace(config.Filter);
 
                 var includeFiles = config.CleanupTarget == CleanupTarget.All ||
                                    config.CleanupTarget == CleanupTarget.Files;
