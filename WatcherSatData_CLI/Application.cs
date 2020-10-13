@@ -320,7 +320,7 @@ namespace WatcherSatData_CLI
                 foreach (var sub in subDirs)
                     try
                     {
-                        Directory.Delete(sub);
+                        Directory.Delete(sub, true);
                     }
                     catch (Exception exc)
                     {
