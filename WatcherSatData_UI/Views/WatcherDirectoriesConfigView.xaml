@@ -152,19 +152,6 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-
-                <DataGridTemplateColumn Header="Изм." IsReadOnly="True">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="Изменено" FontWeight="Bold" Foreground="Black"
-                                           Visibility="{Binding IsChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                <TextBlock Text="Удалено" FontWeight="Bold" Foreground="DeepPink"
-                                           Visibility="{Binding IsDeleted, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
 

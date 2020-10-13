@@ -260,7 +260,7 @@ namespace WatcherSatData_CLI
                     {
                         if (dir.NumberOfChildren != 0)
                             Logger.Info(
-                                $"Очистка {dir.Config.FullPath} - {dir.NumberOfChildren} подпапок  ({dir.NumberOfSubDirectories}) и файлов ({dir.NumberOfFiles})");
+                                $"Очистка {dir.Config.FullPath} : {dir.NumberOfSubDirectories} подпапок, ({dir.NumberOfFiles}) файлов ({dir.NumberOfChildren} папок и файлов всего)");
 
                         CleanUpDirectory(dir);
                     }
